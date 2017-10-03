@@ -108,6 +108,8 @@ static double temp_adc02_ch3 = 0;
 pthread_t normal;	 
 pthread_t admin;	 
 pthread_t th;
+pthread_t th_sp;
+pthread_t th_ph;
 
 void LOG_PRINT(char log_txt[256], int log_status );
 
@@ -246,9 +248,11 @@ int thread_MOT(void){
 				break;
 				
 			case MOT_Clean:
+				
 				if(flg_c == 0){
 					m_start = clock();
 					flg_c=1;
+					printf("つまり処理　開始\n");
 				}
 				m_end = clock();
 				m_sec = (double)(m_end - m_start) / CLOCKS_PER_SEC;
@@ -265,6 +269,7 @@ int thread_MOT(void){
 					digitalWrite(mot1_F,1);
 					digitalWrite(mot1_R,0);
 				}else{
+					printf("つまり処理 正常終了\n");
 					mot_state = MOT_OFF;
 					flg_c = 0;
 				}
@@ -272,9 +277,11 @@ int thread_MOT(void){
 			break;
 				
 			case MOT_Format:
+				
 				if(flg_f == 0){
 					m_start = clock();
 					flg_f=1;
+					printf("初期モーター駆動\n");
 				}
 				m_end = clock();
 				m_sec = (double)(m_end - m_start) / CLOCKS_PER_SEC;
@@ -285,12 +292,13 @@ int thread_MOT(void){
 				}else if(m_sec > 5 && m_sec <= 10){
 					digitalWrite(mot1_F,0);
 					digitalWrite(mot1_R,1);
-				}else if(m_sec > 10 &&　m_sec <= 15){
+				}else if(m_sec > 10 && m_sec <= 15){
 					digitalWrite(mot1_F,1);
 					digitalWrite(mot1_R,0);
 				}else{
 					mot_state = MOT_OFF;
 					flg_f = 0;
+					printf("モーター駆動　正常終了\n");
 				}
 			break;
 			
@@ -345,13 +353,13 @@ int thread_speed(void *ptr){
 			 // printf("%d\n",status_speed);
 			  
 			  speed_count++;
-			   printf("count : %d\n\n", speed_count);
+			   //printf("count : %d\n\n", speed_count);
 			  
 			  if( (speed_count % gear_ ) == 0 ){
 				  end = clock();
 				  ck_sec = (double)(end - start) / CLOCKS_PER_SEC;
 				  //printf("end : %d\n", end);
-				  printf("%.3f sec\n", ck_sec);
+				  //printf("%.3f sec\n", ck_sec);
 				  start = clock();
 			  }
 			  sp_flag = 0;
@@ -548,9 +556,7 @@ int sys_format(void){
 			printf("flg_7 = %d\n",  flg_7);
 
 			/* 8.	脱水部と減容部の詰まり確認　・　スポンジ残ってないか確認　 */
-			pthread_create( &th, NULL, (void*(*)(void*))thread_speed, NULL);	//スレッド[speed]スタート
-			//pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート
-				
+			pthread_create( &th_sp, NULL, (void*(*)(void*))thread_speed, NULL);	//スレッド[speed]スタート				
 			mot_state = MOT_Format;
 				
 			while(1){
@@ -579,12 +585,14 @@ int sys_format(void){
 				printf("エラー:詰まりを検知\n");
 				LOG_PRINT("詰まりを検知", LOG_NG);	
 			}	
-			printf("flg_8 = %d\n\n",  flg_8);		
+			printf("flg_8 = %d\n\n",  flg_8);	
+
+			pthread_detach(th_sp);
+			
 
 			/*9.スポンジ残ってないか確認*/
-			pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート
-			mot_state = MOT_For;
-		    pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート		
+			pthread_create( &th_ph, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート
+			mot_state = MOT_For;	
 			delay(5000);
 			if(kenti == 1){
 				lcdPrintf (fd_lcd, "\xD0\xBC\xAE\xD8\xC9\xBD\xCE\xDF\xDD\xBC\xDE\xA6\xBC\xAE\xD8\xC1\xAD\xA3") ;		//ミショリノスポンジヲショリチュウ
@@ -595,8 +603,8 @@ int sys_format(void){
 				mot_state = MOT_OFF;
 				flg_9 = 1;			
 			}
-			
 			printf("flg_9 = %d\n\n",  flg_9);
+			pthread_detach(th_ph);
 
 			// 終了条件
 			if(flg_1 == 1 && flg_2 == 1 && flg_3 == 1 && flg_4 == 1 &&
@@ -606,8 +614,6 @@ int sys_format(void){
 				delay(600);
 				break;
 			}
-			
-			if(shuttdown ==1) break;
 		}
 		while(error > 0 ){
 				if(shuttdown ==1) break;
