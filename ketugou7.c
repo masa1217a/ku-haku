@@ -11,10 +11,7 @@
 #include <math.h>
 #include <string.h>
 
-#define BUTTON1   	0										// スタートボタン
-#define BUTTON2  	2										// ストップボタン
-#define BUTTON3   	3										// 電源ボタン
-
+/* モーター */
 #define mot1_F         23									// 脱水モーター　正転
 #define mot1_R         24									// 脱水モーター　逆転
 //#define mot1_STOP 25							// 脱水モーター　停止
@@ -22,37 +19,60 @@
 //#define mot2_R 28									// 減容モーター　逆転
 //#define mot2_STOP 27							// 減容モーター　停止
 
-#define LIGHT       101										//	
-#define PHOTO		102 									//光電センサ　受光
-//#define PHOTO2		103 							//光電センサ　受光
-#define SPEED      107  									//速度センサ
-//#define SPEED      105 									//速度センサ
-//#define SPEED      106  									//速度センサ
-//#define SPEED      107  									//速度センサ
-#define KINSETU1   108 									// 近接センサ1　投入部
-#define KINSETU2	108									// 近接センサ2　ドッキング部
-#define KINSETU3	108									// 近接センサ3　屑箱
-#define GREEN  114											//表示灯	緑
-#define	YELLOW	113										//表示灯	黃
-#define	RED	112												//表示灯	赤
-#define BUZZER  111 										//ブザー
-
-#define	LED1	211												//LED　通常時
-#define	LED2	210												//LED　管理時
-#define SW1	212												// 脱水　電源
-#define SW2	213												// 脱水　正/逆
-#define SW3	214												// 減容　電源
-#define SW4	215												// 減容　正/逆
-		
-#define LOG_OK  0     										/* テスト関数戻り値(正常)*/
-#define LOG_NG -1     					  					/* テスト関数戻り値(異常)*/
-
 #define	MOT_OFF	0
 #define	MOT_For	1 										//Forwards正転
 #define	MOT_Rev	2											//Reversal逆転
 #define MOT_Clean 3										//詰まり検知後の動作
 #define MOT_Format 4									//初期チェック
 #define MOT_Temp 70
+///////////////////////////
+/* 透過型光電センサ */
+#define LIGHT       101										//	
+#define PHOTO		102 									//光電センサ　受光
+//#define PHOTO2		103 							//光電センサ　受光
+///////////////////////////
+/* 速度センサ */
+#define SPEED      107  									//速度センサ
+//#define SPEED      105 									//速度センサ
+//#define SPEED      106  									//速度センサ
+//#define SPEED      107  									//速度センサ
+#define GEAR		2										//刃の枚数
+////////////////////////////
+/* 近接センサ */ 
+#define KINSETU1   108 									// 近接センサ1　投入部
+#define KINSETU2	108									// 近接センサ2　ドッキング部
+#define KINSETU3	108									// 近接センサ3　屑箱
+////////////////////////////
+/* 表示灯 */
+#define GREEN  114											//表示灯	緑
+#define	YELLOW	113										//表示灯	黃
+#define	RED	112												//表示灯	赤
+#define BUZZER  111 										//ブザー
+////////////////////////////
+/* 操作パネルボタン */
+#define BUTTON1   	0										// スタートボタン
+#define BUTTON2  	2										// ストップボタン
+#define BUTTON3   	3										// 電源ボタン
+///////////////////////////
+/* 操作パネルＬＥＤ */
+#define	LED1	211												//LED　通常時
+#define	LED2	210												//LED　管理時
+////////////////////////////
+/* 管理パネル */
+#define SW1	212												// 脱水　電源
+#define SW2	213												// 脱水　正/逆
+#define SW3	214												// 減容　電源
+#define SW4	215												// 減容　正/逆
+////////////////////////////
+/* ログ */
+#define LOG_OK  0     										/* テスト関数戻り値(正常)*/
+#define LOG_NG -1     					  					/* テスト関数戻り値(異常)*/
+
+char LOG_FILE[100] =  "/home/pi/LOG/log.txt";        /* ログディレクトリ(通常)  */
+/* macros */
+#define logN 256
+FILE *log_file;        /* 通常ログ */
+////////////////////////////
 
 volatile unsigned long time_prev = 0, time_now;
 unsigned long time_chat =500;
@@ -88,11 +108,6 @@ static double temp_adc02_ch3 = 0;
 pthread_t normal;	 
 pthread_t admin;	 
 pthread_t th;
-
-char LOG_FILE[100] =  "/home/pi/LOG/log.txt";        /* ログディレクトリ(通常)  */
-/* macros */
-#define logN 256
-FILE *log_file;        /* 通常ログ */
 
 void LOG_PRINT(char log_txt[256], int log_status );
 
@@ -292,7 +307,7 @@ int thread_speed(void *ptr){
   int speed_count = 0;
   int sp_flag = 0;
   //int g_flg = 0;
-  int gear_  = 21;
+  int gear_  = GEAR;
   
   int start, end ;
   
@@ -1420,7 +1435,7 @@ int main(int argc, char **argv) {
 	pthread_create(&th,NULL, (void*(*)(void*))thread_kinsetu, NULL);
 	lcd();
 	
-	//if(sys_format() != 0) return -1;
+	if(sys_format() != 0) return -1;
 	
 	while(1){
 		switch(mode){
