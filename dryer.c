@@ -201,6 +201,12 @@ int thread_photo(void *ptr){
 
 //モータースレッド
 int thread_MOT(void){
+
+	int m_start, m_end;
+	double m_sec;
+	// フラグ
+	int flg_c=0, flg_f=0;
+
 	digitalWrite(mot1_F,0);
 	digitalWrite(mot1_R,0);
 
@@ -225,39 +231,52 @@ int thread_MOT(void){
 				break;
 				
 			case MOT_Clean:
-				digitalWrite(mot1_F,0);
-				digitalWrite(mot1_R,1);
-				delay(5000);
-			
-				digitalWrite(mot1_F,1);
-				digitalWrite(mot1_R,0);
-				delay(5000);
-	
-				digitalWrite(mot1_F,0);
-				digitalWrite(mot1_R,1);
-				delay(5000);
-	
-				digitalWrite(mot1_F,1);
-				digitalWrite(mot1_R,0);
-				delay(5000);
-		
-				mot_state = MOT_OFF;
+				if(flg_c == 0){
+					m_start = clock();
+					flg_c=1;
+				}
+				m_end = clock();
+				m_sec = (double)(m_end - m_start) / CLOCKS_PER_SEC;
+				if(m_sec <= 5){
+					digitalWrite(mot1_F,0);
+					digitalWrite(mot1_R,1);
+				}else if(m_sec > 5 && m_sec <= 10){
+					digitalWrite(mot1_F,1);
+					digitalWrite(mot1_R,0);
+				}else if(m_sec > 10 && m_sec <= 15){
+					digitalWrite(mot1_F,0);
+					digitalWrite(mot1_R,1);
+				}else if(m_sec > 15 && m_sec <= 20){
+					digitalWrite(mot1_F,1);
+					digitalWrite(mot1_R,0);
+				}else{
+					mot_state = MOT_OFF;
+					flg_c = 0;
+				}
+
 			break;
 				
 			case MOT_Format:
-				digitalWrite(mot1_F,1);
-				digitalWrite(mot1_R,0);
-				delay(5000);
-			
-				digitalWrite(mot1_F,0);
-				digitalWrite(mot1_R,1);
-				delay(5000);
-		 	
-				digitalWrite(mot1_F,1);
-				digitalWrite(mot1_R,0);
-				delay(5000);	
-				
-				mot_state = MOT_OFF;
+				if(flg_f == 0){
+					m_start = clock();
+					flg_f=1;
+				}
+				m_end = clock();
+				m_sec = (double)(m_end - m_start) / CLOCKS_PER_SEC;
+
+				if(m_sec <= 5){
+					digitalWrite(mot1_F,1);
+					digitalWrite(mot1_R,0);
+				}else if(m_sec > 5 && m_sec <= 10){
+					digitalWrite(mot1_F,0);
+					digitalWrite(mot1_R,1);
+				}else if(m_sec > 10 &&　m_sec <= 15){
+					digitalWrite(mot1_F,1);
+					digitalWrite(mot1_R,0);
+				}else{
+					mot_state = MOT_OFF;
+					flg_f = 0;
+				}
 			break;
 			
 			default: 
@@ -515,7 +534,7 @@ int sys_format(void){
 
 			/* 8.	脱水部と減容部の詰まり確認　・　スポンジ残ってないか確認　 */
 			pthread_create( &th, NULL, (void*(*)(void*))thread_speed, NULL);	//スレッド[speed]スタート
-			pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート
+			//pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート
 				
 			mot_state = MOT_Format;
 				
@@ -526,17 +545,14 @@ int sys_format(void){
 					while(1){
 						if(shuttdown ==1) break;
 						if(ck_sec >= 3){
-							st = 1;
 							flg_8 = 0;
 							break;
 						}else if(mot_state == MOT_OFF){
-							st = 1;
 							flg_8 = 1;
 							break;
 						}
 					}
 				}else if(mot_state == MOT_OFF){
-					st = 1;
 					flg_8 =1;
 					break;
 				}
@@ -551,7 +567,7 @@ int sys_format(void){
 			printf("flg_8 = %d\n\n",  flg_8);		
 
 			/*9.スポンジ残ってないか確認*/
-			st = 0;
+			pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート
 			mot_state = MOT_For;
 		    pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート		
 			delay(5000);
@@ -562,8 +578,7 @@ int sys_format(void){
 			}else{
 				LOG_PRINT("スポンジ無し", LOG_OK);
 				mot_state = MOT_OFF;
-				flg_9 = 1;
-				st = 1;				
+				flg_9 = 1;			
 			}
 			
 			printf("flg_9 = %d\n\n",  flg_9);
@@ -716,6 +731,7 @@ void shutdown(void)
 		pthread_detach(admin);
 		st=1;
 		shuttdown = 1;
+		exit(1);
 	}
 	time_prev = time_now;	
 }
@@ -737,7 +753,7 @@ void stop(void){
 /*****************************************
 *             			  モード処理        						          *
 *****************************************/
-///通常モード
+// 通常モード
 int thread_normal(void *ptr)
 {
 	int	time_count=0;
