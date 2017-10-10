@@ -28,7 +28,7 @@
 ///////////////////////////
 /* 透過型光電センサ */
 #define LIGHT       101										//	
-#define PHOTO		102 									//光電センサ　受光
+#define PHOTO		103 									//光電センサ　受光
 //#define PHOTO2		103 							//光電センサ　受光
 ///////////////////////////
 /* 速度センサ */
@@ -36,7 +36,8 @@
 //#define SPEED      105 									//速度センサ
 //#define SPEED      106  									//速度センサ
 //#define SPEED      107  									//速度センサ
-#define GEAR		2										//刃の枚数
+#define GEAR_DRY		2										//刃の枚数
+#define GEAR_CRASH    21
 ////////////////////////////
 /* 近接センサ */ 
 #define KINSETU1   108 									// 近接センサ1　投入部
@@ -83,14 +84,13 @@ int d_power,g_power,d_state,g_state;
 int mot_state = MOT_OFF;
 int volt_distance(float volt);
 double map(double v);
-double ck_sec;
+double dry_sec=0;
 
 int adc01(void);
 int adc02(void);
 int ctrl_c(void);
 int read_speed(void);
 int lcd(void);
-int clean(void);
 
 static int distance_adc01_ch0 = 0;
 static int distance_adc01_ch1 = 0;
@@ -112,7 +112,6 @@ pthread_t th_sp;
 pthread_t th_ph;
 
 void LOG_PRINT(char log_txt[256], int log_status );
-
 
 /*****************************************
 *							スレッド処理											*
@@ -247,15 +246,14 @@ int thread_MOT(void){
 				digitalWrite(mot1_R,1);
 				break;
 				
-			case MOT_Clean:
-				
+			case MOT_Clean:	
 				if(flg_c == 0){
-					m_start = clock();
+					m_start = millis();
 					flg_c=1;
 					printf("つまり処理　開始\n");
 				}
-				m_end = clock();
-				m_sec = (double)(m_end - m_start) / CLOCKS_PER_SEC;
+				m_end = millis();
+				m_sec = (double)(m_end - m_start) / 1000;
 				if(m_sec <= 5){
 					digitalWrite(mot1_F,0);
 					digitalWrite(mot1_R,1);
@@ -279,12 +277,12 @@ int thread_MOT(void){
 			case MOT_Format:
 				
 				if(flg_f == 0){
-					m_start = clock();
+					m_start = millis();
 					flg_f=1;
 					printf("初期モーター駆動\n");
 				}
-				m_end = clock();
-				m_sec = (double)(m_end - m_start) / CLOCKS_PER_SEC;
+				m_end = millis();
+				m_sec = (double)(m_end - m_start) / 1000;
 
 				if(m_sec <= 5){
 					digitalWrite(mot1_F,1);
@@ -314,8 +312,6 @@ int thread_speed(void *ptr){
 
   int speed_count = 0;
   int sp_flag = 0;
-  //int g_flg = 0;
-  int gear_  = GEAR;
   
   int start, end ;
   
@@ -326,7 +322,7 @@ int thread_speed(void *ptr){
   
   /* Start main routine */
   printf("start\n");
-   start = clock();
+   start = millis();
    //printf("%d\n", start);
   for(;;) {
 	 if(st  == 1) break; 
@@ -356,16 +352,16 @@ int thread_speed(void *ptr){
 			   //printf("count : %d\n\n", speed_count);
 			  
 			  if( (speed_count % gear_ ) == 0 ){
-				  end = clock();
-				  ck_sec = (double)(end - start) / CLOCKS_PER_SEC;
+				  end = millis();
+				  dry_sec = (double)(end - start) / 1000;
 				  //printf("end : %d\n", end);
-				  //printf("%.3f sec\n", ck_sec);
-				  start = clock();
+				  printf("%.3f sec\n", dry_sec);
+				  start = millis();
 			  }
 			  sp_flag = 0;
 	  }
-	  end = clock();
-	  ck_sec = (double)(end - start) / CLOCKS_PER_SEC;
+	  end = millis();
+	  dry_sec = (double)(end - start) / 1000;
   }
   return 0;
 }
@@ -449,7 +445,7 @@ int sys_format(void){
 		    if(kinsetu1 == 0 ){
 				printf("脱水部と減容部のドッキングがされていません\n");
 				LOG_PRINT("ドッキングエラー", LOG_NG);
-				error=7;
+				error=3;
 				lcd();
 				flg_1 = 0;
 				delay(600); 
@@ -464,7 +460,7 @@ int sys_format(void){
 			if(kinsetu1 == 0 ){
 				printf("屑箱を設置してください\n");
 				LOG_PRINT("屑箱なし", LOG_NG);
-				error=9;
+				error=4;
 				lcd();
 				flg_2 = 0;
 				delay(600); 
@@ -481,7 +477,7 @@ int sys_format(void){
 			{
 				printf("エラー:スポンジの量が多いです\n");
 				LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
-				error=4;
+				error=5;
 				lcd();
 				flg_3 = 0;
 				delay(600); 
@@ -513,7 +509,7 @@ int sys_format(void){
 			{
 				printf("エラー:スポンジの量が多いです\n");
 				LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
-				error=4;
+				error=5;
 				lcd();
 				flg_5 = 0;
 				delay(600); 
@@ -530,7 +526,7 @@ int sys_format(void){
 			{
 				printf("エラー:スポンジの量が多いです\n");
 				LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
-				error=4;
+				error=5;
 				lcd();
 				flg_6= 0;
 				delay(600); 
@@ -545,7 +541,7 @@ int sys_format(void){
 			if( adc02() >= MOT_Temp  ){
 				printf("エラー:異常な温度を検知\n");
 				LOG_PRINT("異常な温度を検知", LOG_NG);
-				error=10;
+				error=9;
 				lcd();
 				delay(600); 
 				break;
@@ -555,17 +551,18 @@ int sys_format(void){
 			}
 			printf("flg_7 = %d\n",  flg_7);
 
-			/* 8.	脱水部と減容部の詰まり確認　・　スポンジ残ってないか確認　 */
+			/* 8.	脱水部と減容部の詰まり確認　 */
 			pthread_create( &th_sp, NULL, (void*(*)(void*))thread_speed, NULL);	//スレッド[speed]スタート				
 			mot_state = MOT_Format;
 				
 			while(1){
 				if(shuttdown ==1) break;
-				if( ck_sec >= 3 ){
+				if( dry_sec >= 3 ){
 					mot_state = MOT_Clean;
+					//printf("%.3f sec\n", dry_sec);
 					while(1){
 						if(shuttdown ==1) break;
-						if(ck_sec >= 3){
+						if(dry_sec >= 3){
 							flg_8 = 0;
 							break;
 						}else if(mot_state == MOT_OFF){
@@ -581,22 +578,25 @@ int sys_format(void){
 				
 			if(  flg_8 == 1 )	LOG_PRINT("詰まりなし", LOG_OK);	
 			else {
-				error = 5;
+				error = 6;
+				lcd();
 				printf("エラー:詰まりを検知\n");
 				LOG_PRINT("詰まりを検知", LOG_NG);	
 			}	
-			printf("flg_8 = %d\n\n",  flg_8);	
-
-			pthread_detach(th_sp);
-			
+			printf("flg_8 = %d\n\n",  flg_8);		
 
 			/*9.スポンジ残ってないか確認*/
 			pthread_create( &th_ph, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート
 			mot_state = MOT_For;	
 			delay(5000);
-			if(kenti == 1){
-				lcdPrintf (fd_lcd, "\xD0\xBC\xAE\xD8\xC9\xBD\xCE\xDF\xDD\xBC\xDE\xA6\xBC\xAE\xD8\xC1\xAD\xA3") ;		//ミショリノスポンジヲショリチュウ
-				error = 11;
+			if( dry_sec >= 3){
+				mot_state = MOT_Clean;
+			}else if(kenti == 1){
+				//lcdPosition(fd_lcd,0,0);
+				//lcdPrintf (fd_lcd, "\xD0\xBC\xAE\xD8\xC9\xBD\xCE\xDF\xDD\xBC\xDE\xA6\xBC\xAE\xD8\xC1\xAD\xB3") ;		//ミショリノスポンジヲショリチュウ
+				
+				error = 10;
+				lcd();
 				LOG_PRINT("スポンジ有り", LOG_OK);				
 			}else{
 				LOG_PRINT("スポンジ無し", LOG_OK);
@@ -605,10 +605,13 @@ int sys_format(void){
 			}
 			printf("flg_9 = %d\n\n",  flg_9);
 			pthread_detach(th_ph);
+			
+			pthread_detach(th_sp);
 
 			// 終了条件
 			if(flg_1 == 1 && flg_2 == 1 && flg_3 == 1 && flg_4 == 1 &&
 	    	   flg_5 == 1 && flg_6 == 1 && flg_7 == 1 && flg_8 == 1 && flg_9 == 1 ){
+				 st=1;
 				flg_end = 1;
 				error=0;
 				delay(600);
@@ -747,11 +750,24 @@ void shutdown(void)
 	time_now = millis();
 	if(time_now-time_prev > time_chat){
 		printf("おわり\n");
+		mot_state = MOT_OFF;
 		pthread_detach(th);
 		pthread_detach(normal);
 		pthread_detach(admin);
 		st=1;
 		shuttdown = 1;
+		
+		digitalWrite(LED1, 0);
+		digitalWrite(LED2, 0);
+		digitalWrite(RED, 0);
+		digitalWrite(LIGHT, 0);    
+		digitalWrite(YELLOW, 0);   
+		digitalWrite(GREEN, 0); 
+		digitalWrite(BUZZER, 0); 
+		digitalWrite(mot1_F,0);
+		digitalWrite(mot1_R,0);
+		lcdClear(fd_lcd);		
+		
 		exit(1);
 	}
 	time_prev = time_now;	
@@ -786,6 +802,7 @@ int thread_normal(void *ptr)
 	LOG_PRINT("---------通常モード開始---------", LOG_OK);
     digitalWrite(LED1, 1);
     digitalWrite(LED2, 0); 
+	lcdPosition(fd_lcd,0,0);
 	lcdPrintf (fd_lcd, "\xCC\xB8\xDB\xCA\xBE\xAF\xC1\xBC\xCF\xBC\xC0\xB6\x3F       ") ;		//フクロハセッチシマシタカ？
 	while(1){
 		
@@ -846,7 +863,7 @@ int thread_normal(void *ptr)
 				if(distance_adc01_ch0<20 || distance_adc01_ch1<20){
 					printf("エラー:スポンジの量が多いです\n");
 					LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
-					error=4;
+					error=5;
 					lcd();
 					st=1;
 					delay(100);
@@ -854,16 +871,6 @@ int thread_normal(void *ptr)
 				else LOG_PRINT("投入口のスポンジの量がちょうどいい", LOG_OK);
 			}
 
-
-			if(st==0)  
-			{
-				printf("スタート\n");
-				pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート
-				pthread_create(&th,NULL, (void*(*)(void*))thread_speed, NULL);	//スレッド[speed]スタート
-				LOG_PRINT("スタート", LOG_OK);
-				error=0;
-				act=1;
-			}
 			if(error==0){
 				digitalWrite(RED, 0);
 				digitalWrite(YELLOW, 0);        
@@ -874,6 +881,17 @@ int thread_normal(void *ptr)
 				digitalWrite(YELLOW, 0);
 				digitalWrite(GREEN, 0);				
 			}
+			
+			if(st==0) {
+				printf("スタート\n");
+				lcdPosition(fd_lcd,0,0);	
+				lcdPrintf (fd_lcd, "\xBC\xAE\xD8\xBC\xC3\xB2\xCF\xBD          ") ;		//ショリシテイマス
+				pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);	//スレッド[pth]スタート
+				pthread_create(&th,NULL, (void*(*)(void*))thread_speed, NULL);	//スレッド[speed]スタート
+				LOG_PRINT("スタート", LOG_OK);
+				error=0;
+				act=1;
+			}
 						
 			if(st==0 && d_power== 1 && d_state==0)	mot_state = MOT_For;
 			if(st==0 && d_power== 1 && d_state==1)	mot_state = MOT_Rev;
@@ -883,15 +901,12 @@ int thread_normal(void *ptr)
 				{
 					act=0;
 					mot_state = MOT_OFF;
-					lcdPosition(fd_lcd,0,0);	
-					lcdPrintf (fd_lcd, "\xCC\xB8\xDB\xCA\xBE\xAF\xC1\xBC\xCF\xBC\xC0\xB6\x3F       ") ;		//フクロハセッチシマシタカ？
+					if(error < 1) {
+						lcdPosition(fd_lcd,0,0);	
+						lcdPrintf (fd_lcd, "\xCC\xB8\xDB\xCA\xBE\xAF\xC1\xBC\xCF\xBC\xC0\xB6\x3F       ") ;		//フクロハセッチシマシタカ？
+					}
 					if(shuttdown == 1) lcdClear(fd_lcd);
 					break; 
-				}
-				
-				if(st==0){
-					lcdPosition(fd_lcd,0,0);	
-					lcdPrintf (fd_lcd, "\xBC\xAE\xD8\xBC\xC3\xB2\xCF\xBD          ") ;		//ショリシテイマス
 				}
 				
 				time_count++;
@@ -905,7 +920,7 @@ int thread_normal(void *ptr)
 				{
 					printf("扉を閉めてください\n");
 					LOG_PRINT("扉が開いている", LOG_NG);
-					error=2;
+					error=1;
 					lcd();
 					st = 1;
 					teisi=1;
@@ -913,6 +928,29 @@ int thread_normal(void *ptr)
 					mot_state = MOT_OFF;
 					break; 
 				}
+
+				if(st==0 && d_power== 1 && dry_sec >= 3 ){
+					printf("詰まり検知\n");
+					mot_state = MOT_Clean;
+					//printf("%.3f sec\n", dry_sec);
+					while(1){
+						if(shuttdown ==1) break;
+						if(dry_sec >= 5){
+							printf("エラー：脱水部の詰まり\n");
+							mot_state = MOT_OFF;
+							error = 6;
+							lcd();
+							st = 1;
+							break;
+						}else if(mot_state == MOT_OFF){
+							printf("詰まり解消\n");
+							if(st==0 && d_power== 1 && d_state==0)	mot_state = MOT_For;
+							if(st==0 && d_power== 1 && d_state==1)	mot_state = MOT_Rev;
+							break;
+						}
+					}
+				}
+				
 				delay(500); 
 			}
 		}
@@ -939,6 +977,7 @@ int thread_normal(void *ptr)
 					delay(100);
 				}
 			}
+			
 		}
 		if(mode==2  || shuttdown==1) break;
 	}
@@ -1359,24 +1398,6 @@ int lcd(void)
 	return 0;
 }
 
-int clean(void)
-{
-	 	mot_state = MOT_Rev;
-		delay(5000);
-			
-		mot_state = MOT_For;
-		delay(5000);
-	
-		mot_state = MOT_Rev;
-		delay(5000);
-	
-		mot_state = MOT_For;
-		delay(5000);
-		
-		mot_state = MOT_OFF;
-	
-	return 0;
-}
 /*****************************************
 *							メイン処理												*
 *****************************************/
@@ -1431,7 +1452,7 @@ int main(int argc, char **argv) {
     digitalWrite(LED1, 1);
     digitalWrite(LED2, 0);   
 	lcdPosition(fd_lcd,0,1);	
-	lcdPrintf (fd_lcd, "       \xC3\xDE\xDD\xB9\xDE\xDD  \xD3\xB0\xC0" ,error) ;		
+	lcdPrintf (fd_lcd, "       \xC3\xDE\xDD\xB9\xDE\xDD  \xD3\xB0\xC0" ) ;		
 	lcdPosition(fd_lcd,0,2);	
 	lcdPrintf (fd_lcd, "\xC0\xDE\xAF\xBD\xB2 : " ) ;		
 	lcdPosition(fd_lcd,0,3);	
@@ -1443,6 +1464,7 @@ int main(int argc, char **argv) {
 	
 	if(sys_format() != 0) return -1;
 	
+	st=0;
 	while(1){
 		switch(mode){
 		case 1:
@@ -1455,21 +1477,7 @@ int main(int argc, char **argv) {
 					
 		}
 		delay(500);
-		if(shuttdown > 0) break;
 	}
-
-    digitalWrite(LED1, 0);
-    digitalWrite(LED2, 0);
-    digitalWrite(RED, 0);
-    digitalWrite(LIGHT, 0);    
-    digitalWrite(YELLOW, 0);   
-    digitalWrite(GREEN, 0); 
-    digitalWrite(BUZZER, 0); 
-   digitalWrite(mot1_F,0);
-   digitalWrite(mot1_R,0);
-	lcdClear(fd_lcd);
-
-	delay(1000);
 	
    return 0;
 }
