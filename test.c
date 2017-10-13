@@ -1,25 +1,24 @@
+
 #include <stdio.h>
+#include <stdlib.h>    /* exit(  )で必要 */
 
-int main(void)
+void main(void);
+
+void main(void)
 {
-    char buf[256], name[256];
-    int hour, min, hour2, min2;
     FILE *fp;
+    int c;
 
-    fp = fopen("settings.ini", "r");
-    if (!fp) return 1;
-    if (!fgets(buf, sizeof buf, fp)) return 1;
-    if (sscanf(buf, "%d,%d,%d,%d,%s", &hour, &min, &hour2, &min2, name) != 5)
-        return 1;
-    printf("%02d:%02d %02d:%02d [%s]\n", hour, min, hour2, min2, name);
-    fclose(fp);
- /*
-    fp = fopen("Data.txt", "r");
-    if (!fp) return 1;
-    if (!fgets(buf, sizeof buf, fp)) return 1;
-    if (sscanf(buf, "%d%d%s", &hour, &min, name) != 3) return 1;
-    printf("%d %d [%s]\n", hour, min, name);
-    fclose(fp);
- */
-    return 0;
+        /* ファイルを開くのに失敗したら */
+        /* プログラムを終了して、シェルに戻る */
+    if ((fp = fopen( "settings.txt", "r")) == NULL) {
+        fprintf(stderr, "Can't Open File\n");
+        exit(2);
+    }
+
+                        /* ファイルの終わりに達するまで */
+    while ((c = fgetc(fp)) != EOF)    /* 一文字読み込み */
+        fputc(c, stdout);             /* 画面に表示 */
+
+    fclose(fp);                       /* ファイルを閉じる */
 }
