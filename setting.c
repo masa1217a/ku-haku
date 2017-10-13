@@ -1,85 +1,50 @@
+/* get_param.c */
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
 
-int seisu;
-double jissu;
-char mojiretu[300];
+#define STR_MAX 256
+#define CONFIG_FILE "settings.txt"
 
-// gcc -o setting setting.c -llua
-/*
-  http://nvnote.com/c-configfile-lua/
-   もし、luaが入っていない場合
-   sudo apt-get install lua
-   sudo apt-get install lua-devel
-*/
-
-/*
-   https://qiita.com/kb10uy/items/976a52f687bcb7745fc7
-   上記でもダメな場合
-   wget http://www.lua.org/ftp/lua-5.2.3.tar.gz
-   tar xvf lua-5.2.3.tar.gz
-   cd lua-5.2.3
-   make linux && sudo make install
-*/
-
-/* ------------------------------------------------------------ */
-/* lua変数を取得しスタックに格納する。取得できなければエラーを出力し終了*/
-void Get_lua_variable(lua_State *L, const char *variable_name){
-  lua_pop(L, 1);                                /* スタックから変数をポップする *\//\*一番上のスタックをPOP */
-  lua_getglobal(L,variable_name);		/* 変数を取得しスタックに格納 */
-  if(!lua_isstring(L,-1)){			/* "-" でスタックの一番上を示す*/
-    printf("変数 \"%s\" は正しく取得できませんでした\n",variable_name);
-    exit(1);
-  }
+void usage(void)
+{
+    printf("usage: ./get_param [parameter_name]\n");
 }
 
-/* ------------------------------------------------------------ */
-/* Lua変数をint型で返却する */
-int Get_lua_integer(lua_State *L, const char *variable_name){
-  Get_lua_variable(L,variable_name);	/* lua変数をスタックに格納する */
-  return lua_tointeger(L,-1);		/* スタックの一番上の値を取得 */
-}
+char main(int argc, char *argv[])
+{
+    int i = 0, j = 0;
+    char str[STR_MAX], param[STR_MAX];
+    FILE *fin;
 
-/* ------------------------------------------------------------ */
-/* Lua変数をdouble型で返却する */
-double Get_lua_number(lua_State *L, const char *variable_name){
-  Get_lua_variable(L,variable_name);
-  return lua_tonumber(L,-1);
-}
+    if (argc < 2) {
+        usage();
+        return -2; /* operation miss */
+    }
 
-/* ------------------------------------------------------------ */
-/* Lua変数をchar *型で返却する */
-char *Get_lua_string(lua_State *L, const char *variable_name){
-  Get_lua_variable(L,variable_name);
-  return (char *)lua_tostring(L,-1);
-}
+    if ((fin = fopen(CONFIG_FILE, "r")) == NULL) {
+        printf("fin error:[%s]\n", CONFIG_FILE);
+        return -1; /* system error */
+    }
 
-/* ------------------------------------------------------------ */
-/* luaファイルから変数を取得し格納する*/
-void Set_lua_variable(char *config_file_name){
-  lua_State* L=luaL_newstate();	/*lua オブジェクトの生成*/
-  luaL_openlibs(L);		/*標準ライブラリの読み込み*/
-  luaL_dofile(L,config_file_name);	/*Luaファイルの評価*/
-
-  /* 設定値の取得 */
-  seisu = Get_lua_integer(L,"seisu");
-  jissu = Get_lua_number(L,"jissu");
-  strcpy(mojiretu,Get_lua_string(L,"mojiretu"));
-
-  lua_close(L);				/*  Luaオブジェクトを解放 */
-}
-
-/* ------------------------------------------------------------ */
-/* main文 */
-int main(void){
-  Set_lua_variable("config.lua");
-
-  printf("sisu : %d\n",seisu);
-  printf("jissu: %lf\n",jissu);
-  printf("mojiretu : %s\n",mojiretu);
-  return 0;
+    for(;;) {
+        if (fgets(str, STR_MAX, fin) == NULL) {
+            /* EOF */
+            fclose(fin);
+            return -3; /* not found keyword */
+        }
+        if (!strncmp(str, argv[1], strlen(argv[1]))) {
+            while (str[i++] != '=') {
+                ;
+            }
+            while (str[i] != ' ') {
+                param[j++] = str[i++];
+            }
+            param[j] = '\0';
+            printf("param : %s\n", param);
+            fclose(fin);
+            return 0;
+        }
+    }
+    fclose(fin);
+    return -1; /* not reachable */
 }
