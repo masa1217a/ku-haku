@@ -12,68 +12,68 @@
 #include <string.h>
 
 /* モーター */
-#define mot1_F         23									// 脱水モーター　正転
-#define mot1_R         24									// 脱水モーター　逆転
-#define mot1_STOP 25									// 脱水モーター　停止
-#define mot2_F 29											// 減容モーター　正転
-#define mot2_R 28											// 減容モーター　逆転
-#define mot2_STOP 27									// 減容モーター　停止
-
 #define	MOT_OFF	0
 #define	MOT_For	1 										//Forwards正転
 #define	MOT_Rev	2											//Reversal逆転
 #define MOT_Clean 3										//詰まり検知後の動作
 #define MOT_Format 4									//初期チェック
 #define MOT_For_check 5							//初期チェック
-#define MOT_Temp 70										//温度
+
+int mot1_F;									// 脱水モーター　正転
+int mot1_R;									// 脱水モーター　逆転
+int mot1_STOP;									// 脱水モーター　停止
+int mot2_F;											// 減容モーター　正転
+int mot2_R;											// 減容モーター　逆転
+int mot2_STOP;									// 減容モーター　停止
+int MOT_Temp;										//温度
 ///////////////////////////
 /* 透過型光電センサ */
-#define LIGHT       101										//I2Cチェック用LED
-#define PHOTO1	103 									//光電センサ　受光
-#define PHOTO2	102			 							//光電センサ　受光
+int LIGHT; 										//I2Cチェック用LED
+int PHOTO1;					//光電センサ　受光
+int PHOTO2;						//光電センサ　受光
 ///////////////////////////
 /* 速度センサ */
-#define SPEED1      107  									//速度センサ
-#define SPEED2      106 									//速度センサ
-#define SPEED3      105  									//速度センサ
-#define SPEED4      104  									//速度センサ
-#define GEAR_DRY		2									//刀の枚数
-#define GEAR_CRASH    21
-#define time_sp   3										// 詰まり検知
+int SPEED1;  									//速度センサ
+int SPEED2; 									//速度センサ
+int SPEED3;  									//速度センサ
+int SPEED4;  									//速度センサ
+int GEAR_DRY;									//刀の枚数
+int GEAR_CRASH;
+int time_sp;										// 詰まり検知
 ////////////////////////////
 /* 近接センサ */
-#define KINSETU1   108 								// 近接センサ1　投入部
-#define KINSETU2	109									// 近接センサ2　ドッキング部
-#define KINSETU3	110									// 近接センサ3　屑箱
+int KINSETU1; 						// 近接センサ1　投入部
+int KINSETU2;							// 近接センサ2　ドッキング部
+int KINSETU3;							// 近接センサ3　屑箱
 ////////////////////////////
 /* 表示灯 */
-#define GREEN  114											//表示灯	緑
-#define	YELLOW	113										//表示灯	黃
-#define	RED	112												//表示灯	赤
-#define BUZZER  111 										//ブザー
+int GREEN;											//表示灯	緑
+int	YELLOW;										//表示灯	黃
+int	RED;												//表示灯	赤
+int BUZZER; 										//ブザー
 ////////////////////////////
 /* 操作パネルボタン */
-#define BUTTON1   	0										// スタートボタン
-#define BUTTON2  	2										// ストップボタン
-#define BUTTON3   	3										// 電源ボタン
+int BUTTON1;										// スタートボタン
+int BUTTON2;									// ストップボタン
+int BUTTON3;										// 電源ボタン
 ///////////////////////////
 /* 操作パネルＬＥＤ */
-#define	LED1	211												//LED　通常時
-#define	LED2	210												//LED　管理時
+int	LED1;												//LED　通常時
+int	LED2;												//LED　管理時
 ////////////////////////////
 /* 管理パネル */
-#define SW1	212												// 脱水　電源
-#define SW2	213												// 脱水　正/逆
-#define SW3	214												// 減容　電源
-#define SW4	215												// 減容　正/逆
+int SW1;												// 脱水　電源
+int SW2;												// 脱水　正/逆
+int SW3;												// 減容　電源
+int SW4;												// 減容　正/逆
 ////////////////////////////
 /* ログ */
+/* macros */
+#define logN 256
 #define LOG_OK  0     										/* テスト関数戻り値(正常)*/
 #define LOG_NG -1     					  					/* テスト関数戻り値(異常)*/
 
 char LOG_FILE[100] =  "/home/pi/LOG/log.txt";        /* ログディレクトリ(通常)  */
-/* macros */
-#define logN 256
 FILE *log_file;        /* 通常ログ */
 ////////////////////////////
 
@@ -930,6 +930,81 @@ void LOG_PRINT(char log_txt[256], int log_status )
 
 }
 
+int read_param(char *param_name)
+{
+    int i = 0, j = 0;
+    int output_param;
+    char str[STR_MAX], param[STR_MAX];
+    FILE *fin;
+
+    if ((fin = fopen(CONFIG_FILE, "r")) == NULL) {
+        printf("fin error:[%s]\n", CONFIG_FILE);
+        return -1; /* system error */
+    }
+
+    for(;;) {
+        if (fgets(str, STR_MAX, fin) == NULL) {
+            /* EOF */
+            fclose(fin);
+            return -3; /* not found keyword */
+        }
+        if (!strncmp(str, param_name, strlen(param_name))) {
+            while (str[i++] != '=') {
+                ;
+            }
+            while (str[i] != ' ') {
+                param[j++] = str[i++];
+            }
+            param[j] = '\0';
+            printf("param : %s\n", param);
+            fclose(fin);
+            output_param = atoi(param);
+            return output_param;
+        }
+    }
+    fclose(fin);
+    return -1; /* not reachable */
+}
+
+int param_init()
+{
+
+  if((mot1_F     = read_param("mot1_F")) < 0)     return -1;
+  if((mot1_R     = read_param("mot1_R")) < 0)     return -1;
+  if((mot1_STOP  = read_param("mot1_STOP")) < 0)  return -1;
+  if((mot2_F     = read_param("mot2_F")) < 0)     return -1;
+  if((mot2_R     = read_param("mot2_R")) < 0)     return -1;
+  if((mot2_STOP  = read_param("mot2_STOP")) < 0)  return -1;
+  if((LIGHT      = read_param("LIGHT")) < 0)      return -1;
+  if((PHOTO      = read_param("PHOTO")) < 0)      return -1;
+  if((PHOTO2     = read_param("PHOTO2")) < 0)     return -1;
+  if((SPEED1     = read_param("SPEED1")) < 0)     return -1;
+  if((SPEED2     = read_param("SPEED2")) < 0)     return -1;
+  if((SPEED3     = read_param("SPEED3")) < 0)     return -1;
+  if((SPEED4     = read_param("SPEED4")) < 0)     return -1;
+  if((GEAR_DRY   = read_param("GEAR_DRY")) < 0)   return -1;
+  if((GEAR_CRASH = read_param("GEAR_CRASH")) < 0) return -1;
+  if((time_sp    = read_param("time_sp")) < 0)    return -1;
+  if((KINSETU1   = read_param("KINSETU1")) < 0)   return -1;
+  if((KINSETU2   = read_param("KINSETU2")) < 0)   return -1;
+  if((KINSETU3   = read_param("KINSETU3")) < 0)   return -1;
+  if((GREEN      = read_param("GREEN")) < 0)      return -1;
+  if((RED        = read_param("RED")) < 0)        return -1;
+  if((YELLOW     = read_param("YELLOW")) < 0)     return -1;
+  if((BUZZER     = read_param("BUZZER")) < 0)     return -1;
+  if((BUTTON1    = read_param("BUTTON1")) < 0)    return -1;
+  if((BUTTON2    = read_param("BUTTON2")) < 0)    return -1;
+  if((BUTTON3    = read_param("BUTTON3")) < 0)    return -1;
+  if((LED1       = read_param("LED1")) < 0)       return -1;
+  if((LED2       = read_param("LED2")) < 0)       return -1;
+  if((SW1        = read_param("SW1")) < 0)        return -1;
+  if((SW2        = read_param("SW2")) < 0)        return -1;
+  if((SW3        = read_param("SW3")) < 0)        return -1;
+  if((SW4        = read_param("SW4")) < 0)        return -1;
+
+  return 0;
+}
+
 /*****************************************
 *							外部割り込み											*
 ******************************************/
@@ -1680,7 +1755,11 @@ int lcd(void)
 *****************************************/
 int main(int argc, char **argv) {
 
-
+	if(param_init() == -1){
+		printf("param_init Fail\n");
+		exit(1);
+	}
+	
 	if (mcp23017Setup(100,0x20) == -1){			//mcp23017Setup(65以上の任意の数字,MCPのアドレス)
         printf("Setup Fail\n");
         exit(1);
