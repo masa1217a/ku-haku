@@ -41,47 +41,17 @@ int read_param(char *param_name)
     return -1; /* not reachable */
 }
 
-int convert_param(char *param_name, int input_param)
+int param_init()
 {
-    int i = 0, j = 0;
-    char str[STR_MAX], param[STR_MAX];
-    FILE *fin;
 
-    if ((fin = fopen(CONFIG_FILE, "w")) == NULL) {
-        printf("fin error:[%s]\n", CONFIG_FILE);
-        return -1; /* system error */
-    }
+  if(read_param("mot1_F") < 0) return -1;
 
-    for(;;) {
-        if (fgets(str, STR_MAX, fin) == NULL) {
-            /* EOF */
-            fclose(fin);
-            return -3; /* not found keyword */
-        }
-        if (!strncmp(str, param_name, strlen(param_name))) {
-            while (str[i++] != '=') {
-                ;
-            }
-
-            fprintf(fin, "%d", input_param);
-
-            fclose(fin);
-            return 0;
-        }
-    }
-    fclose(fin);
-    return -1; /* not reachable */
+  return 0;
 }
 
 int main()
 {
-
-  if(read_param("mot1_F") < 0) return -1;
-  else printf("%d\n", read_param("mot1_F"));
-
-  if(convert_param("mot1_F", 55) != 0) return -2;
-
-  printf("%d\n", read_param("mot1_F"));
+  if(param_init()!=0) return -1;
 
   return 0;
 }
