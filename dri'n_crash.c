@@ -11,6 +11,9 @@
 #include <math.h>
 #include <string.h>
 
+#define STR_MAX 256
+#define CONFIG_FILE "setting.txt"
+
 /* モーター */
 #define	MOT_OFF	0
 #define	MOT_For	1 										//Forwards正転
@@ -118,16 +121,18 @@ pthread_t th_sp;
 pthread_t th_ph;
 
 void LOG_PRINT(char log_txt[256], int log_status );
+void IOsetting(void);
 
 /*****************************************
 *							スレッド処理											*
 *****************************************/
 //光電スレッド
 int thread_photo(void *ptr){
-	int	time_count=0;
-	int	pht=0;
-	int	dec_time=0;
-	int	kouden_num = 0;						//光電センサが脱水部か減容部か（1→脱水部　0→減容部）
+	int time_count=0;
+	int pht=0;
+	int kenti2 = 0;
+	int dec_time=0;
+	int kouden_num = 0;						//光電センサが脱水部か減容部か（1→脱水部　0→減容部）
 	int d_end = 0;									//脱水終了フラグ
 
 	if(KOUDEN == PHOTO1)	{
@@ -141,7 +146,7 @@ int thread_photo(void *ptr){
 	if(pht != 0)printf("物体検知まで待つ\n");
 	while(pht != 0)	//pht:1=受光　　pht:0=物体検知
 	{
-		if(st  == 1 || kenti==1) break;
+		if(st  == 1 || kenti2==1) break;
 
 		if(kouden_num ==  1)  pht=digitalRead( PHOTO1 );
 		else  pht=digitalRead( PHOTO2 );
@@ -150,6 +155,7 @@ int thread_photo(void *ptr){
 	}
 
 	if(st==0)kenti=1;
+	if(st==0)kenti2=1;
     time_count=0;
  	if(pht==0 ) printf("物体検知\n");
  	if(pht==0 ) printf("物体がなくなるまで待つ\n");
@@ -170,6 +176,7 @@ int thread_photo(void *ptr){
 		if(kouden_num == 1 && d_teisi == 1){
 				while(d_teisi){
 						if(st == 1) break;
+						delay(200);
 				}
 		}
 
@@ -200,6 +207,7 @@ int thread_photo(void *ptr){
 						dec_time = 0;
 						st = 1;
 						kenti=0;
+						kenti2=0;
 						teisi=0;
 						mot_state = MOT_OFF;
 						mot_state2 = MOT_OFF;
@@ -488,6 +496,7 @@ int thread_speed(void *ptr){
 	if(flg_sec == 1 && d_teisi == 1){
 		while(d_teisi){
 			if(st == 1) break;
+			delay(200);
 		}
 	}
 
@@ -956,7 +965,7 @@ int read_param(char *param_name)
                 param[j++] = str[i++];
             }
             param[j] = '\0';
-            printf("param : %s\n", param);
+            printf("%14s : %3s\n", param_name , param);
             fclose(fin);
             output_param = atoi(param);
             return output_param;
@@ -976,7 +985,7 @@ int param_init()
   if((mot2_R     = read_param("mot2_R")) < 0)     return -1;
   if((mot2_STOP  = read_param("mot2_STOP")) < 0)  return -1;
   if((LIGHT      = read_param("LIGHT")) < 0)      return -1;
-  if((PHOTO      = read_param("PHOTO")) < 0)      return -1;
+  if((PHOTO1     = read_param("PHOTO1")) < 0)     return -1;
   if((PHOTO2     = read_param("PHOTO2")) < 0)     return -1;
   if((SPEED1     = read_param("SPEED1")) < 0)     return -1;
   if((SPEED2     = read_param("SPEED2")) < 0)     return -1;
@@ -1004,7 +1013,6 @@ int param_init()
 
   return 0;
 }
-
 /*****************************************
 *							外部割り込み											*
 ******************************************/
@@ -1034,8 +1042,8 @@ void shutdown(void)
 		lcdClear(fd_lcd);
 
 		printf("おわり\n");
-		system("shutdown -h now");
-		//exit(1);
+		//system("shutdown -h now");
+		exit(1);
 	}
 	time_prev = time_now;
 }
@@ -1064,6 +1072,7 @@ int thread_normal(void *ptr)
 	int	time_count=0;
 	int	kyori_count1=0;
 	int	kyori_count2=0;
+	int	kyori_count3=0;
 	int   kyori_state = 0;
 	act=0;
 	st =0;
@@ -1120,6 +1129,7 @@ int thread_normal(void *ptr)
 			st =0;
 			kyori_count1 = 0;
 			kyori_count2 = 0;
+			kyori_count3 = 0;
 			d_teisi = 0;
 			if(kinsetu1  == 0 || kinsetu2 == 0 || kinsetu3 == 0) {
 					printf("扉を閉めてください\n");
@@ -1271,21 +1281,25 @@ int thread_normal(void *ptr)
 				if(kyori_state == 0){
 					if(distance_adc01_ch2<25 || distance_adc01_ch3<25){					//測距：減容貯蓄部		満杯検知前
 						kyori_count2++;
+						printf("%d\n",kyori_count2);
 						if(kyori_count2 >= 25){
+							printf("減容貯蓄部　満杯検知\n");
 							kyori_count2 = 0;
 							kyori_state = 1;
 							d_teisi = 1;
 							mot_state = MOT_OFF;
 							delay(100);
 						}
-					else kyori_count2 = 0;
 					}
+					else kyori_count2 = 0;
 				}
 				else if(kyori_state == 1){
 					if(distance_adc01_ch2>=25 && distance_adc01_ch3>=25){					//測距：減容貯蓄部		満杯検知後
-						kyori_count2++;
-						if(kyori_count2 >= 300){
-							kyori_count2 = 0;
+						kyori_count3++;
+						printf("%d\n",kyori_count3);
+						if(kyori_count3>= 300){
+							printf("減容貯蓄部　満杯解除\n");
+							kyori_count3 = 0;
 							kyori_state = 0;
 							d_teisi = 0;
 							if(st==0 && d_power== 1 && d_state==0)	mot_state = MOT_For;
@@ -1461,6 +1475,11 @@ lcdPrintf (fd_lcd, "\xD2\xDD\xC3\xC5\xDD\xBD\xD3\xB0\xC4\xDE \xC1\xAD\xB3\xB2  "
 					if(t2 >= 50){
 						t2=0;
 						mode=1;							//スレッド[normal]スタート
+						if(param_init() == -1){
+							printf("param_init Fail\n");
+							exit(1);
+						}
+						IOsetting();
 						LOG_PRINT("*****通常モードに移行*****", LOG_OK);
 						break;
 					}
@@ -1591,7 +1610,7 @@ int adc01(void)
 
   //printf("ADC01 CH0 Distance %d cm\n", distance_adc01_ch0);
   //printf("ADC01 CH1 Distance %d cm\n", distance_adc01_ch1);
-  //printf("ADC01 CH2 Distance %d cm\n", distance_adc01_ch2);
+  printf("ADC01 CH2 Distance %d cm\n", distance_adc01_ch2);
   //printf("ADC01 CH3 Distance %d cm\n", distance_adc01_ch3);
   //printf("ADC01 CH4 Distance %d cm\n", distance_adc01_ch4);
   //printf("ADC01 CH5 Distance %d cm\n", distance_adc01_ch5);
@@ -1750,33 +1769,7 @@ int lcd(void)
 	return 0;
 }
 
-/*****************************************
-*							メイン処理												*
-*****************************************/
-int main(int argc, char **argv) {
-
-	if(param_init() == -1){
-		printf("param_init Fail\n");
-		exit(1);
-	}
-	
-	if (mcp23017Setup(100,0x20) == -1){			//mcp23017Setup(65以上の任意の数字,MCPのアドレス)
-        printf("Setup Fail\n");
-        exit(1);
-    }
-
-	if (mcp23017Setup(200,0x24) == -1){
-        printf("Setup Fail\n");
-        exit(1);
-	}
-
-    fd_lcd = lcdInit(4,20,8,200,201,209,202,208,203,207,204,206,205);			//LCDの設定
-    //lcdInit(行,列,ビット数,RS,E,D0,D1,D2,D3,D4,D5,D6,D7);
-
-	if (wiringPiSetup() == -1){
-        printf("Setup Fail\n");
-        exit(1);
-	}
+void IOsetting(void){
 
 	/**********I/O設定**********/
     pinMode(BUTTON1, INPUT);
@@ -1805,6 +1798,37 @@ int main(int argc, char **argv) {
 	pinMode(mot2_F,OUTPUT);
 	pinMode(mot2_R,OUTPUT);
     /*****************************/
+
+}
+/*****************************************
+*							メイン処理												*
+*****************************************/
+int main(int argc, char **argv) {
+
+	if(param_init() == -1){
+		printf("param_init Fail\n");
+		exit(1);
+	}
+
+	if (mcp23017Setup(100,0x20) == -1){			//mcp23017Setup(65以上の任意の数字,MCPのアドレス)
+        printf("Setup Fail\n");
+        exit(1);
+    }
+
+	if (mcp23017Setup(200,0x24) == -1){
+        printf("Setup Fail\n");
+        exit(1);
+	}
+
+    fd_lcd = lcdInit(4,20,8,200,201,209,202,208,203,207,204,206,205);			//LCDの設定
+    //lcdInit(行,列,ビット数,RS,E,D0,D1,D2,D3,D4,D5,D6,D7);
+
+	if (wiringPiSetup() == -1){
+        printf("Setup Fail\n");
+        exit(1);
+	}
+
+	IOsetting();
 
  	printf("準備完了\n");
  	digitalWrite(LIGHT, 1);
