@@ -265,7 +265,7 @@ int thread_MOT(void){
                 break;
 
             case MOT_Rev://モータが逆転の場合
-                digitalWrite(mot1_F,0);
+                digitalWrite(mot1_F,1);
                 usleep(50000);
                 digitalWrite(mot1_R,1);
                 break;
@@ -283,13 +283,13 @@ int thread_MOT(void){
                     digitalWrite(mot1_R,1);
                 }else if(m_sec > 5 && m_sec <= 10){
                     digitalWrite(mot1_F,1);
-                    digitalWrite(mot1_R,0);
+                    digitalWrite(mot1_R,1);
                 }else if(m_sec > 10 && m_sec <= 15){
                     digitalWrite(mot1_F,0);
                     digitalWrite(mot1_R,1);
                 }else if(m_sec > 15 && m_sec <= 20){
                     digitalWrite(mot1_F,1);
-                    digitalWrite(mot1_R,0);
+                    digitalWrite(mot1_R,1);
                 }else{
                     printf("つまり処理 正常終了\n");
                     mot_state = MOT_OFF;
@@ -312,7 +312,7 @@ int thread_MOT(void){
                     digitalWrite(mot1_F,1);
                     digitalWrite(mot1_R,0);
                 }else if(m_sec > 5 && m_sec <= 10){
-                    digitalWrite(mot1_F,0);
+                    digitalWrite(mot1_F,1);
                     digitalWrite(mot1_R,1);
                 }else if(m_sec > 10 && m_sec <= 15){
                     digitalWrite(mot1_F,1);
@@ -758,13 +758,13 @@ int sys_format(void){
 
             while(1){
                 if(shuttdown ==1) break;
-                if( dry_sec >= 5 ){
+                if( dry_sec >= 10 ){
                     mot_state = MOT_Clean;
                     mot_state2 = MOT_Clean;
                     //printf("%.3f sec\n", dry_sec);
                     while(1){
                         if(shuttdown ==1) break;
-                        if(dry_sec >= 5){
+                        if(dry_sec >= 12){
                             flg_8 = 0;
                             break;
                         }else if(mot_state == MOT_OFF && mot_state2==MOT_OFF){
@@ -978,7 +978,7 @@ int param_init()
   if((mot2_F          = read_param("mot2_F")) < 0)          return -1;
   if((mot2_R          = read_param("mot2_R")) < 0)          return -1;
   if((mot2_STOP       = read_param("mot2_STOP")) <  0)      return -1;
-  if((MOT_Temp        = read_param("MOT_Temp")) <  0)       return -1;
+    if((MOT_Temp       = read_param("MOT_Temp")) <  0)      return -1;
 	if((mot_clean_sec    = read_param("mot_clean_sec")) < 0)    return -1;
 	if((mot_format_sec  = read_param("mot_format_sec")) < 0)  return -1;
   if((LIGHT           = read_param("LIGHT")) < 0)           return -1;
@@ -1039,8 +1039,8 @@ void shutdown(void)
         lcdClear(fd_lcd);
 
         printf("おわり\n");
-        //system("shutdown -h now");
-        exit(1);
+        system("shutdown -h now");
+        //exit(1);
     }
     time_prev = time_now;
 }
@@ -1079,6 +1079,7 @@ int thread_normal(void *ptr)
     int kyori_count2=0;
     int kyori_count3=0;
     int   kyori_state = 0;
+    d_end = 0;
     act=0;
     st =0;
     teisi=0;
@@ -1371,8 +1372,6 @@ int thread_normal(void *ptr)
                 delay(200);
             }
         }else{
-            //lcdPosition(fd_lcd,0,0);
-            //lcdPrintf (fd_lcd, "\xc3\xdE\xdD\xb9\xdE\xdD\xa6ON\xc6\xbc\xc3\xb8\xc0\xdE\xbB\xb2   ") ;       //デンゲンヲONニシテクダサイ (モータノ:\xd3\xb0\xc0\xc9)
             error = 11;
             lcd();
         }
@@ -1498,8 +1497,6 @@ lcdPrintf (fd_lcd, "\xD2\xDD\xC3\xC5\xDD\xBD\xD3\xB0\xC4\xDE \xC1\xAD\xB3\xB2  "
                 if(st  == 1) break;
             }
         }else{
-            //lcdPosition(fd_lcd,0,0);
-            //lcdPrintf (fd_lcd, "\xc3\xdE\xdD\xb9\xdE\xdD\xa6ON\xc6\xbc\xc3\xb8\xc0\xdE\xbB\xb2   ") ;       //デンゲンヲONニシテクダサイ (モータノ:\xd3\xb0\xc0\xc9)
             error = 11;
             lcd();
         }
