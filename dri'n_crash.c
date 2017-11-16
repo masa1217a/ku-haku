@@ -741,13 +741,31 @@ int sys_format(void){
 
             /* 7.   モータの温度が安定動作できる範囲であるか  */
             adc02();
-            if(temp_adc02_ch0>=MOT_Temp || temp_adc02_ch1>=MOT_Temp || temp_adc02_ch2>=MOT_Temp || temp_adc02_ch3>=MOT_Temp){
-                printf("エラー:異常な温度を検知\n");
-                LOG_PRINT("異常な温度を検知", LOG_NG);
+            if(temp_adc02_ch0>=MOT_Temp){
+              printf("エラー:異常な温度を検知 : 脱水部１\n");
+              LOG_PRINT("異常な温度を検知 : 脱水部１", LOG_NG);
+              error=9;
+            }
+            if( temp_adc02_ch1>=MOT_Temp ){
+              printf("エラー:異常な温度を検知 : 脱水部２\n");
+              LOG_PRINT("異常な温度を検知 : 脱水部２", LOG_NG);
+              error=9;
+            }
+            if( temp_adc02_ch2>=MOT_Temp ){
+              printf("エラー:異常な温度を検知 : 減容部１\n");
+              LOG_PRINT("異常な温度を検知 : 減容部１", LOG_NG);
+              error=9;
+            }
+            if() temp_adc02_ch3>=MOT_Temp){
+                printf("エラー:異常な温度を検知 : 減容部２\n");
+                LOG_PRINT("異常な温度を検知 : 減容部２", LOG_NG);
                 error=9;
-                lcd();
-                delay(200);
-                break;
+            }
+            if( error == 9 ){
+              lcd();
+              flg_7 = 0;
+              delay(200);
+              break;
             }else{
              LOG_PRINT("正常な温度を検知", LOG_OK);
              flg_7 = 1;
