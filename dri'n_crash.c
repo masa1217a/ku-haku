@@ -625,9 +625,22 @@ int sys_format(void){
         if(sw1==0 && sw2==0 && sw3==0 && sw4==0)    break;
     }
 
+    // 袋の設置確認
+    lcdPosition(fd_lcd,0,0);
+    lcdPrintf (fd_lcd, "\xCC\xB8\xDB\xCA\xBE\xAF\xC1\xBC\xCF\xBC\xC0\xB6\x3F       ") ;     //フクロハセッチシマシタカ？
+    while(digitalRead(BUTTON1) == 0 && kinsetu3 == 0){ //袋を設置したらスタートボタンを押す(ボタンが押されるまで待つ）
+      if(digitalRead(BUTTON1) == 1 && kinsetu3 == 0){
+        error = 4;
+        lcd();
+        printf("屑箱を設置してください\n");
+        LOG_PRINT("屑箱なし", LOG_NG);
+      }
+    }
+    LOG_PRINT("袋設置", LOG_OK);
+
     lcdPosition(fd_lcd,0,0);
     lcdPrintf (fd_lcd, "\xBE\xAF\xC4\xB1\xAF\xCC\xDF\xC1\xAD\xB3          ") ;      //セットアップチュウ
-
+    sleep(1);
     while(!flg_end){
         while(1){
             /* 1. 脱水部と減容部のドッキングがされているか  */
