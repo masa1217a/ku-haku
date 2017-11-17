@@ -33,9 +33,10 @@ int mot_clean_sec;
 int mot_format_sec;
 ///////////////////////////
 /* 透過型光電センサ */
-int LIGHT;                                               //I2Cチェック用LED
-int PHOTO1;                                             //光電センサ　受光
-int PHOTO2;                                             //光電センサ　受光
+int LIGHT;                                              // I2Cチェック用LED
+int PHOTO1;                                             // 光電センサ　受光 脱水部
+int PHOTO2;                                             // 光電センサ　受光　減容部
+int photo_conf;                                         // 正常運転以外で停止した場合１で保存される(非常停止、停止)
 ///////////////////////////
 /* 速度センサ */
 int SPEED1;                                             //速度センサ
@@ -85,7 +86,7 @@ FILE *log_file;        /* 通常ログ */
 volatile unsigned long time_prev = 0, time_now;
 unsigned long time_chat =500;
 int btn1=0, btn2=0,sw1=0,sw2=0,sw3=0,sw4=0,shuttdown=0;
-int st=0, t1=0, t2=0, mode=1,kenti=0,error=0,teisi=0,d_teisi=0,d_end = 0,act=0;
+int st=0, t1=0, t2=0, mode=1,error=0,teisi=0,d_teisi=0,d_end = 0,act=0;
 int fd_lcd=0,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
 int d_power,g_power,d_state,g_state;
 int mot_state = MOT_OFF, mot_state2=MOT_OFF;
@@ -129,42 +130,43 @@ void IOsetting(void);
 *****************************************/
 //光電スレッド
 int thread_photo(void *ptr){
-    int time_count=0;
-    int pht=0;
-    int kenti2 = 0;
-    int dec_time=0;
-    int kouden_num = 0;                     //光電センサが脱水部か減容部か（1→脱水部　0→減容部）
+    int pht_start = 0;                      // カウントスタート
+    int pht_end = 0;                        // カウントエンド
+    int dec_time = 0;                       // 光電経過時間(検知しなくなった時間)
+    int wonda = 0;                          // ピン番号格納
+    int pht = 0;
+    int kouden_num = 0;                     // 光電センサが脱水部か減容部か（1→脱水部　0→減容部）
 
     if(KOUDEN == PHOTO1)    {
-        pht=digitalRead( PHOTO1 );
+        wonda = PHOTO1;                       // 脱水部
         kouden_num = 1;
-    }else
-         pht=digitalRead( PHOTO2 );
-
-    printf("kouden No: %d\n",kouden_num);
-
-    if(pht != 0)printf("物体検知まで待つ\n");
-    while(pht != 0) //pht:1=受光　　pht:0=物体検知
-    {
-        if(st  == 1 || kenti2==1) break;
-
-        if(kouden_num ==  1)  pht=digitalRead( PHOTO1 );
-        else  pht=digitalRead( PHOTO2 );
-
-        delay(50);
+        printf("光電：脱水部");
+    }else{
+        wonda = PHOTO2;                       // 減容部
+        kouden_num = 0;
+        printf("光電：減容部");
     }
 
-    if(st==0)kenti=1;
-    if(st==0)kenti2=1;
-    time_count=0;
-    if(pht==0 ) printf("物体検知\n");
-    if(pht==0 ) printf("物体がなくなるまで待つ\n");
+    pht = digitalRead(wonda);
+    // printf("kouden No: %d\n",kouden_num);
+
+    if(pht == 1)printf("物体検知まで待つ\n");
+    while(pht == 1) //pht:1=受光　　pht:0=物体検知
+    {
+      // 停止ボタンで動作を止める
+      if( st == 1 || photo_conf == 1 ) break;
+      pht = digitalRead(wonda);            // 光電読み込み
+      delay(50);
+    }
+    // 停止ボタンで
+    if( st == 1 ) photo_conf = 1;
+    if( pht==0 ) printf("光電センサが物体検知\n
+                        物体がなくなるまで待つ\n");
 
     while(1){
         dec_time = 0;
 
-        if(kouden_num   == 1)  pht=digitalRead( PHOTO1 );
-        else  pht=digitalRead( PHOTO2 );
+        pht = digitalRead(wonda);
 
         if(st  == 1) break;
 
@@ -212,10 +214,10 @@ int thread_photo(void *ptr){
                         d_end = 0;
                         dec_time = 0;
                         st = 1;
-                        kenti=0;
+                        kenti1=0;
                         kenti2=0;
                         teisi=0;
-                        mot_state = MOT_OFF;
+                        mot_state  = MOT_OFF;
                         mot_state2 = MOT_OFF;
                         printf("終了\n");
                     }
@@ -772,6 +774,15 @@ int sys_format(void){
             }
             //printf("flg_7 = %d\n",  flg_7);
 
+            // モーターの動作停止中の光電センサ
+            KOUDEN = PHOTO1;
+            pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);    //スレッド[pth]スタート
+            delay(50);
+            KOUDEN = PHOTO2;
+            pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);    //スレッド[pth]スタート
+            while(kouden)
+
+
             /* 8.   脱水部と減容部の詰まり確認　 */
             sel_sen = SPEED1;
             pthread_create( &th_sp, NULL, (void*(*)(void*))thread_speed, NULL); //スレッド[speed]スタート
@@ -819,21 +830,19 @@ int sys_format(void){
             //printf("flg_8 = %d\n\n",  flg_8);
 
             /*9.スポンジ残ってないか確認*/
+            // モーター動作中に温度、速度、光電、近接が機能しているか
             KOUDEN = PHOTO1;
             pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);    //スレッド[pth]スタート
             delay(50);
             KOUDEN = PHOTO2;
             pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);    //スレッド[pth]スタート
-            mot_state = MOT_For_check;
+            mot_state  = MOT_For_check;
             mot_state2 = MOT_For_check;
             while(1){
-                if(kenti == 1){
-                    error = 10;
-                    lcd();
-                    LOG_PRINT("スポンジ有り", LOG_OK);
-                }else if (mot_state == MOT_OFF && mot_state2 == MOT_OFF){
+                if (mot_state == MOT_OFF && mot_state2 == MOT_OFF){
                     LOG_PRINT("スポンジ無し", LOG_OK);
                     flg_9 = 1;
+                    break;
                 }
                 delay(100);
             }
@@ -1010,11 +1019,12 @@ int param_init()
   if((mot2_R          = read_param("mot2_R")) < 0)          return -1;
   if((mot2_STOP       = read_param("mot2_STOP")) <  0)      return -1;
     if((MOT_Temp       = read_param("MOT_Temp")) <  0)      return -1;
-	if((mot_clean_sec    = read_param("mot_clean_sec")) < 0)    return -1;
+	if((mot_clean_sec    = read_param("mot_clean_sec")) < 0)  return -1;
 	if((mot_format_sec  = read_param("mot_format_sec")) < 0)  return -1;
   if((LIGHT           = read_param("LIGHT")) < 0)           return -1;
   if((PHOTO1          = read_param("PHOTO1")) < 0)          return -1;
   if((PHOTO2          = read_param("PHOTO2")) < 0)          return -1;
+  if((photo_conf      = read_param("photo_conf")) < 0)      return -1;
   if((SPEED1          = read_param("SPEED1")) < 0)          return -1;
   if((SPEED2          = read_param("SPEED2")) < 0)          return -1;
   if((SPEED3          = read_param("SPEED3")) < 0)          return -1;
