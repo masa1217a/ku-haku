@@ -1,9 +1,20 @@
 /* get_param.c */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define STR_MAX 256
-#define CONFIG_FILE "settings.txt"
+#define NOTE_ 500
+#define Setting_FILE "settings.txt"
+#define Save_FILE "save.csv"
+#define size  1
+
+/*構造体宣言*/
+typedef struct{
+    char name[STR_MAX];    // センサなどの名前
+    int  value;            // センサなどの値
+    //char note[NOTE_];    // 備考
+}Vector;
 
 int mot1_F;                                             // 脱水モーター　正転
 int mot1_R;                                             // 脱水モーター　逆転
@@ -57,15 +68,19 @@ int SW3;                                                     // 減容　電源
 int SW4;                                                     // 減容　正/逆
 ////////////////////////////
 
+char n[STR_MAX] = "aa";
+int s=1;
+char m[2]= "gg";
+
 int read_param(char *param_name)
 {
-    int i = 0, j = 0, m = 0;
+    int i = 0, j = 0;
     int output_param;
-    char str[STR_MAX], param[STR_MAX], pmi[STR_MAX];
+    char str[STR_MAX], param[STR_MAX];
     FILE *fin;
 
-    if ((fin = fopen(CONFIG_FILE, "r")) == NULL) {
-        printf("fin error:[%s]\n", CONFIG_FILE);
+    if ((fin = fopen(Setting_FILE, "r")) == NULL) {
+        printf("fin error:[%s]\n", Setting_FILE);
         return -1; /* system error */
     }
 
@@ -76,14 +91,6 @@ int read_param(char *param_name)
             return -3; /* not found keyword */
         }
         if (!strncmp(str, param_name, strlen(param_name))) {
-            while (str[i++] != ':') {
-               ;
-            }
-            while ( str[i] != ' '){
-              pmi[m++] = str[i++];
-            }
-            pmi[m] = '\0';
-            printf("%s : ", pmi);
             while (str[i++] != '=') {
                 ;
             }
@@ -91,7 +98,7 @@ int read_param(char *param_name)
                 param[j++] = str[i++];
             }
             param[j] = '\0';
-            printf("param : %s\n", param);
+            printf("%14s : %3s\n", param_name , param);
             fclose(fin);
             output_param = atoi(param);
             return output_param;
@@ -101,80 +108,57 @@ int read_param(char *param_name)
     return -1; /* not reachable */
 }
 
-char search_param(char *param_name, int parami)
+int write_param(void)
 {
-    int i = 0, j = 0;
-    int output_param;
-    char ssi[3];
-    char str[STR_MAX], param[STR_MAX];
-    FILE *fin, *fout;
+  /*C言語の場合冒頭で宣言する*/
+  FILE *fp ;
+  int i;
+  Vector *ary = (Vector*)malloc(sizeof(Vector)*size);
 
-    sprintf(ssi, "%d", parami);
-
-    if ((fin = fopen(CONFIG_FILE, "r+")) == NULL) {
-        printf("fin error:[%s]\n", CONFIG_FILE);
-        return -1; /* system error */
-    }
-
-    for(;;) {
-        if (fgets(str, STR_MAX, fin) == NULL) {
-            /* EOF */
-            printf("探し物はありませんでした");
-            fclose(fin);
-            return -3; /* not found keyword */
-        }
-        if (!strncmp(str, param_name, strlen(param_name))) {
-            while (str[i++] != '=') {
-                ;
-            }
-            while(str[i] != ' '){
-              str[i] = ssi[0];
-              i++;
-            }
-            printf("%s\n", str);
-            *param = *str;
-            fclose(fin);
-            return *param;
-        }
-    }
-      fclose(fout);
-    return -1; /* not reachable */
+  for(i=0;i<size;i++){
+      /*
+        ここに変化した値を入れる
+      */
+      Vector vec;
+      strcpy(vec.name, n);
+      vec.value = s;
+      ary[i] = vec;
+  }
+  /*ファイル(save.csv)に書き込む*/
+  if((fp=fopen(Save_FILE,"w"))!=NULL){
+      for(i=0;i<size;i++){
+          /*カンマで区切ることでCSVファイルとする*/
+          fprintf(fp,"%s, %d\n",ary[i].name, &ary[i].value);
+      }
+      /*忘れずに閉じる*/
+      fclose(fp);
+  }
+  return 0;
 }
 
-char write_param(char *param_name, char *pmname, int parami)
+int read_(void)
 {
-    int i = 0, j = 0;
-    int output_param;
-    char ssi[3];
-    char str[STR_MAX], param[STR_MAX];
-    FILE *fin, *fout;
-
-    *str = search_param(param_name, parami);
-
-    if ((fout = fopen(CONFIG_FILE, "r+")) == NULL) {
-        printf("fin error:[%s]\n", CONFIG_FILE);
-        return -1; /* system error */
-    }
-
-    for(;;) {
-        if (fgets(param, STR_MAX, fout) == NULL) {
-            /* EOF */
-            printf("探し物はありませんでした");
-            fclose(fout);
-            return -3; /* not found keyword */
-        }
-        if (!strncmp(param, param_name, strlen(param_name))) {
-            while (param[i++] != '=') {
-                ;
-            }
-
-            fputs(str, fout);
-            fclose(fout);
-            return 0;
-        }
+  /*C言語の場合冒頭で宣言する*/
+  FILE *fp ;
+  int i = 0, data_count;
+  Vector vec[1024];
+  /*ファイル(save.csv)に読み込む*/
+  if((fp=fopen(Save_FILE,"r"))!=NULL){
+      i=0;
+      while(fscanf(fp, "%[^,], %d", vec[i].name, &vec[i].value) != EOF){
+          i++;
       }
-      fclose(fout);
-    return -1; /* not reachable */
+      data_count = i;
+      /*忘れずに閉じる*/
+      fclose(fp);
+
+      // 表示
+      for(i=0; i<data_count-1; i++)
+        printf("%s  =  %d\n",vec[i].name, vec[i].value);
+
+      printf("データの数: %d\n", data_count);
+  }
+  return 0;
 }
 
 int param_init()
@@ -218,8 +202,9 @@ int param_init()
 
 int main()
 {
-  if(param_init()!=0) printf("11111\n");
-  if(write_param("photo_conf", "PHOTO2", 1) != 0) printf("00000\n");
+  //if(param_init()!=0) printf("11111\n");
+  //if(write_param() != 0) printf("00000\n");
+  if(read_() != 0) printf("000a0\n");
 
   return 0;
 }
