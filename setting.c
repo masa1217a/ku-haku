@@ -4,10 +4,11 @@
 #include <string.h>
 
 #define STR_MAX 256
+#define Data_MAX 1024
 #define NOTE_ 500
 #define Setting_FILE "settings.txt"
 #define Save_FILE "save.csv"
-#define size  1
+#define size  36
 
 /*構造体宣言*/
 typedef struct{
@@ -15,6 +16,8 @@ typedef struct{
     int  value;            // センサなどの値
     //char note[NOTE_];    // 備考
 }Vector;
+
+Vector vec[Data_MAX];
 
 int mot1_F;                                             // 脱水モーター　正転
 int mot1_R;                                             // 脱水モーター　逆転
@@ -113,22 +116,15 @@ int write_param(void)
   /*C言語の場合冒頭で宣言する*/
   FILE *fp ;
   int i;
-  Vector *ary = (Vector*)malloc(sizeof(Vector)*size);
+  int value;
+  char name[STR_MAX];
 
-  for(i=0;i<size;i++){
-      /*
-        ここに変化した値を入れる
-      */
-      Vector vec;
-      strcpy(vec.name, n);
-      vec.value = s;
-      ary[i] = vec;
-  }
   /*ファイル(save.csv)に書き込む*/
+
   if((fp=fopen(Save_FILE,"w"))!=NULL){
       for(i=0;i<size;i++){
           /*カンマで区切ることでCSVファイルとする*/
-          fprintf(fp,"%s, %d\n",ary[i].name, &ary[i].value);
+          fprintf(fp,"%s,%d", vec[i].name, vec[i].value);
       }
       /*忘れずに閉じる*/
       fclose(fp);
@@ -136,16 +132,17 @@ int write_param(void)
   return 0;
 }
 
-int read_(void)
+int SettingRead(void)
 {
   /*C言語の場合冒頭で宣言する*/
   FILE *fp ;
   int i = 0, data_count;
-  Vector vec[1024];
+  //Vector vec[1024];
   /*ファイル(save.csv)に読み込む*/
   if((fp=fopen(Save_FILE,"r"))!=NULL){
       i=0;
       while(fscanf(fp, "%[^,], %d", vec[i].name, &vec[i].value) != EOF){
+        //printf("%d\n", i);
           i++;
       }
       data_count = i;
@@ -153,58 +150,68 @@ int read_(void)
       fclose(fp);
 
       // 表示
-      for(i=0; i<data_count-1; i++)
-        printf("%s  =  %d\n",vec[i].name, vec[i].value);
+      for(i=0; i<data_count; i++)
+        printf("%s  =  %d  : %d", vec[i].name, vec[i].value, i);
 
-      printf("データの数: %d\n", data_count);
+      printf("\nデータの数: %d\n", data_count);
   }
   return 0;
 }
 
 int param_init()
 {
+  //Vector vec[Data_MAX];
 
-  if((mot1_F     = read_param("mot1_F")) < 0)     return -1;
-  if((mot1_R     = read_param("mot1_R")) < 0)     return -1;
-  if((mot1_STOP  = read_param("mot1_STOP")) < 0)  return -1;
-  if((mot2_F     = read_param("mot2_F")) < 0)     return -1;
-  if((mot2_R     = read_param("mot2_R")) < 0)     return -1;
-  if((mot2_STOP  = read_param("mot2_STOP")) < 0)  return -1;
-  if((LIGHT      = read_param("LIGHT")) < 0)      return -1;
-  if((PHOTO1      = read_param("PHOTO1")) < 0)      return -1;
-  if((PHOTO2     = read_param("PHOTO2")) < 0)     return -1;
-  if((SPEED1     = read_param("SPEED1")) < 0)     return -1;
-  if((SPEED2     = read_param("SPEED2")) < 0)     return -1;
-  if((SPEED3     = read_param("SPEED3")) < 0)     return -1;
-  if((SPEED4     = read_param("SPEED4")) < 0)     return -1;
-  if((GEAR_DRY   = read_param("GEAR_DRY")) < 0)   return -1;
-  if((GEAR_CRASH = read_param("GEAR_CRASH")) < 0) return -1;
-  if((time_sp    = read_param("time_sp")) < 0)    return -1;
-  if((KINSETU1   = read_param("KINSETU1")) < 0)   return -1;
-  if((KINSETU2   = read_param("KINSETU2")) < 0)   return -1;
-  if((KINSETU3   = read_param("KINSETU3")) < 0)   return -1;
-  if((GREEN      = read_param("GREEN")) < 0)      return -1;
-  if((RED        = read_param("RED")) < 0)        return -1;
-  if((YELLOW     = read_param("YELLOW")) < 0)     return -1;
-  if((BUZZER     = read_param("BUZZER")) < 0)     return -1;
-  if((BUTTON1    = read_param("BUTTON1")) < 0)    return -1;
-  if((BUTTON2    = read_param("BUTTON2")) < 0)    return -1;
-  if((BUTTON3    = read_param("BUTTON3")) < 0)    return -1;
-  if((LED1       = read_param("LED1")) < 0)       return -1;
-  if((LED2       = read_param("LED2")) < 0)       return -1;
-  if((SW1        = read_param("SW1")) < 0)        return -1;
-  if((SW2        = read_param("SW2")) < 0)        return -1;
-  if((SW3        = read_param("SW3")) < 0)        return -1;
-  if((SW4        = read_param("SW4")) < 0)        return -1;
+  if(SettingRead() != 0) return -1;
 
+  mot1_F          = vec[0].value;
+  mot1_R          = vec[1].value;
+  mot1_STOP       = vec[2].value;
+  mot2_F          = vec[3].value;
+  mot2_R          = vec[4].value;
+  mot2_STOP       = vec[5].value;
+  MOT_Temp        = vec[6].value;
+	mot_clean_sec   = vec[7].value;
+	mot_format_sec  = vec[8].value;
+  LIGHT           = vec[9].value;
+  PHOTO1          = vec[10].value;
+  PHOTO2          = vec[11].value;
+  SPEED1          = vec[12].value;
+  SPEED2          = vec[13].value;
+  SPEED3          = vec[14].value;
+  SPEED4          = vec[15].value;
+  GEAR_DRY        = vec[16].value;
+  GEAR_CRASH      = vec[17].value;
+  time_sp         = vec[18].value;
+  KINSETU1        = vec[19].value;
+  KINSETU2        = vec[20].value;
+  KINSETU3        = vec[21].value;
+  GREEN           = vec[22].value;
+  RED             = vec[23].value;
+  YELLOW          = vec[24].value;
+  BUZZER          = vec[25].value;
+  BUTTON1         = vec[26].value;
+  BUTTON2         = vec[27].value;
+  BUTTON3         = vec[28].value;
+  LED1            = vec[29].value;
+  LED2            = vec[30].value;
+  SW1             = vec[31].value;
+  SW2             = vec[32].value;
+  SW3             = vec[33].value;
+  SW4             = vec[34].value;
+  photo_conf      = vec[35].value;
   return 0;
 }
 
 int main()
 {
+  //Vector vec[Data_MAX];
   //if(param_init()!=0) printf("11111\n");
   //if(write_param() != 0) printf("00000\n");
-  if(read_() != 0) printf("000a0\n");
+  if(param_init() != 0) printf("000a0\n");
+  vec[35].value = 1;
+  write_param();
+  //SettingRead();
 
   return 0;
 }

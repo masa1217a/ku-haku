@@ -5,9 +5,11 @@ mot2_F,29
 mot2_R,28
 mot2_STOP,27
 MOT_Temp ,70
+mot_clean_sec,5
+mot_format_sec,5
 LIGHT,101
 PHOTO1,103
-PHOTO2,103
+PHOTO2,102
 SPEED1    ,107
 SPEED2    ,106
 SPEED3    ,105
