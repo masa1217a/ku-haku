@@ -12,7 +12,20 @@
 #include <string.h>
 
 #define STR_MAX 256
-#define CONFIG_FILE "setting.txt"
+#define Data_MAX 1024
+#define NOTE_ 500
+#define Setting_FILE "settings.txt"
+#define Save_FILE "save.csv"
+#define size  36
+
+/*構造体宣言*/
+typedef struct{
+    char name[STR_MAX];    // センサなどの名前
+    int  value;            // センサなどの値
+    //char note[NOTE_];    // 備考
+}Vector;
+
+Vector vec[Data_MAX];
 
 /* モーター */
 #define MOT_OFF 0
@@ -36,7 +49,7 @@ int mot_format_sec;
 int LIGHT;                                              // I2Cチェック用LED
 int PHOTO1;                                             // 光電センサ　受光 脱水部
 int PHOTO2;                                             // 光電センサ　受光　減容部
-int photo_conf;                                         //
+int FlgKouden;                                         //
 ///////////////////////////
 /* 速度センサ */
 int SPEED1;                                             //速度センサ
@@ -104,17 +117,7 @@ int adc02(void);
 int read_speed(int gpio_speed);
 int lcd(void);
 
-static int distance_adc01_ch0 = 0;                  //測距：脱水投入口
-static int distance_adc01_ch1 = 0;                  //測距：脱水投入口
-static int distance_adc01_ch2 = 0;                  //測距：減容貯蓄部
-static int distance_adc01_ch3 = 0;                  //測距：減容貯蓄部
-static int distance_adc01_ch4 = 0;                  //測距：屑箱
-static int distance_adc01_ch5 = 0;                  //測距：屑箱
 
-static double temp_adc02_ch0 = 0;                   //温度：脱水モーター
-static double temp_adc02_ch1 = 0;                   //温度：脱水モーター
-static double temp_adc02_ch2 = 0;                   //温度：減容モーター
-static double temp_adc02_ch3 = 0;                   //温度：減容モーター
 
 pthread_t normal;
 pthread_t admin;
@@ -130,10 +133,10 @@ void IOsetting(void);
 *****************************************/
 //光電スレッド
 int thread_photo(void *ptr){
-    int time_count = 0;
+    int time_count=0;
+    int dec_time = 0;                       // 光電経過時間(検知しなくなった時間)
     int wonda = 0;                          // ピン番号格納
     int pht = 0;
-    int dec_time = 0;                       //
     int kouden_num = 0;                     // 光電センサが脱水部か減容部か（1→脱水部　0→減容部）
 
     if(KOUDEN == PHOTO1)    {
@@ -153,22 +156,20 @@ int thread_photo(void *ptr){
     while(pht == 1) //pht:1=受光　　pht:0=物体検知
     {
       // 停止ボタンで動作を止める
-      if(st == 1) break;
+      if( FlgKouden == 1 ) break;
       pht = digitalRead(wonda);            // 光電読み込み
       delay(50);
     }
+    // 停止ボタンで
+    FlgKouden = 1;
+    // 値の保存 (要改善)
+    vec[35].value = FlgKouden;
+    if( pht==0 ) printf("光電センサが物体検知\n物体がなくなるまで待つ\n");
 
-    time_count=0;
-    if(pht==0 ) printf("光電センサが物体検知\n
-                        物体がなくなるまで待つ\n");
-
-    while(1){
+    while(st == 0){
         dec_time = 0;
 
-        if(kouden_num  == 1)  pht=digitalRead( PHOTO1 );
-        else  pht=digitalRead( PHOTO2 );
-
-        if(st  == 1) break;
+        pht = digitalRead(wonda);
 
         if(kouden_num == 1 && d_end == 1)break;
 
@@ -192,7 +193,6 @@ int thread_photo(void *ptr){
             time_count=0;
             while(pht == 1){
                 time_count++;
-
                 if(kouden_num == 1 && d_teisi == 1){
                     while(d_teisi){
                         if(st == 1) break;
@@ -208,18 +208,23 @@ int thread_photo(void *ptr){
                         dec_time = 0;
                         mot_state = MOT_OFF;
                         d_end = 1;
+                        FlgKouden = 0;
+                        vec[35].value = FlgKouden;
+                        if(write_param() != 0) printf("aaa\n");
                         printf("脱水終了\n");
+                        return 0;
                     }else{
                         d_teisi = 0;
                         d_end = 0;
                         dec_time = 0;
-                        st = 1;
-                        kenti1=0;
-                        kenti2=0;
+                        FlgKouden = 0;
+                        vec[35].value = FlgKouden;
+                        if(write_param() != 0) printf("aaa\n");
                         teisi=0;
                         mot_state  = MOT_OFF;
                         mot_state2 = MOT_OFF;
-                        printf("終了\n");
+                        printf("減容終了\n");
+                        return 0;
                     }
                 }
                 else
@@ -239,4 +244,220 @@ int thread_photo(void *ptr){
         delay(50);
     }
     return 0;
+}
+
+/*****************************************
+*                           外部割り込み                                          *
+******************************************/
+//シャットダウンボタン
+void shutdown(void)
+{
+    time_now = millis();
+    if(time_now-time_prev > time_chat){
+        mot_state = MOT_OFF;
+        mot_state2 = MOT_OFF;
+        pthread_detach(th);
+        pthread_detach(normal);
+        pthread_detach(admin);
+        st=1;
+        shuttdown = 1;
+        mode = 0;
+
+        digitalWrite(LED1, 0);
+        digitalWrite(LED2, 0);
+        digitalWrite(RED, 0);
+        digitalWrite(LIGHT, 0);
+        digitalWrite(YELLOW, 0);
+        digitalWrite(GREEN, 0);
+        digitalWrite(BUZZER, 0);
+        digitalWrite(mot1_F,0);
+        digitalWrite(mot1_R,0);
+        lcdClear(fd_lcd);
+
+        printf("おわり\n");
+        //system("shutdown -h now");
+        exit(1);
+    }
+    time_prev = time_now;
+}
+
+//一時停止ボタン
+void stop(void){
+  void *ret;
+	if(act==1){
+        time_now = millis();
+        if(time_now-time_prev > time_chat){
+            st = 1;
+            teisi=1;
+            mot_state = MOT_OFF;
+            mot_state2 = MOT_OFF;
+            delay(100);
+            if (pthread_join(th, &ret) != 0) {
+              perror("pthread_create() error");
+              exit(3);
+            }
+            if(write_param() != 0) printf("aaa\n");
+            printf("一時停止\n");
+        }
+    time_prev = time_now;
+	}
+}
+
+int write_param(void)
+{
+  /*C言語の場合冒頭で宣言する*/
+  FILE *fp ;
+  int i;
+
+  /*ファイル(save.csv)に書き込む*/
+
+  if((fp=fopen(Save_FILE,"w"))!=NULL){
+      for(i=0;i<size;i++){
+          /*カンマで区切ることでCSVファイルとする*/
+          fprintf(fp,"%s,%d", vec[i].name, vec[i].value);
+      }
+      /*忘れずに閉じる*/
+      fclose(fp);
+  }
+  return 0;
+}
+
+int SettingRead(void)
+{
+  /*C言語の場合冒頭で宣言する*/
+  FILE *fp ;
+  int i = 0, data_count;
+  //Vector vec[1024];
+  /*ファイル(save.csv)に読み込む*/
+  if((fp=fopen(Save_FILE,"r"))!=NULL){
+      i=0;
+      while(fscanf(fp, "%[^,], %d", vec[i].name, &vec[i].value) != EOF){
+        //printf("%d\n", i);
+          i++;
+      }
+      data_count = i;
+      /*忘れずに閉じる*/
+      fclose(fp);
+
+      // 表示
+      for(i=0; i<data_count; i++)
+        printf("%s  =  %d  : %d", vec[i].name, vec[i].value, i);
+
+      printf("\nデータの数: %d\n", data_count);
+  }
+  return 0;
+}
+
+int param_init()
+{
+  //Vector vec[Data_MAX];
+
+  if(SettingRead() != 0) return -1;
+
+  mot1_F          = vec[0].value;
+  mot1_R          = vec[1].value;
+  mot1_STOP       = vec[2].value;
+  mot2_F          = vec[3].value;
+  mot2_R          = vec[4].value;
+  mot2_STOP       = vec[5].value;
+  MOT_Temp        = vec[6].value;
+	mot_clean_sec   = vec[7].value;
+	mot_format_sec  = vec[8].value;
+  LIGHT           = vec[9].value;
+  PHOTO1          = vec[10].value;
+  PHOTO2          = vec[11].value;
+  SPEED1          = vec[12].value;
+  SPEED2          = vec[13].value;
+  SPEED3          = vec[14].value;
+  SPEED4          = vec[15].value;
+  GEAR_DRY        = vec[16].value;
+  GEAR_CRASH      = vec[17].value;
+  time_sp         = vec[18].value;
+  KINSETU1        = vec[19].value;
+  KINSETU2        = vec[20].value;
+  KINSETU3        = vec[21].value;
+  GREEN           = vec[22].value;
+  RED             = vec[23].value;
+  YELLOW          = vec[24].value;
+  BUZZER          = vec[25].value;
+  BUTTON1         = vec[26].value;
+  BUTTON2         = vec[27].value;
+  BUTTON3         = vec[28].value;
+  LED1            = vec[29].value;
+  LED2            = vec[30].value;
+  SW1             = vec[31].value;
+  SW2             = vec[32].value;
+  SW3             = vec[33].value;
+  SW4             = vec[34].value;
+  FlgKouden      = vec[35].value;
+  return 0;
+}
+
+void IOsetting(void){
+
+    /**********I/O設定**********/
+    pinMode(BUTTON1, INPUT);
+    wiringPiISR( BUTTON2, INT_EDGE_RISING, stop );         //一時停止ボタンの外部割り込み設定てきなやつ
+    wiringPiISR( BUTTON3, INT_EDGE_RISING, shutdown );         //シャットダウンボタンの外部割り込み設定てきなやつ
+    pinMode(SW1, INPUT);
+    pinMode(SW2, INPUT);
+    pinMode(SW3, INPUT);
+    pinMode(SW4, INPUT);
+    pinMode(PHOTO1, INPUT);
+    pinMode(PHOTO2, INPUT);
+    pinMode(SPEED1, INPUT);
+    pinMode(KINSETU1, INPUT);
+    pinMode(KINSETU2, INPUT);
+    pinMode(KINSETU3, INPUT);
+
+    pinMode(LIGHT,OUTPUT);
+    pinMode(LED1, OUTPUT);
+    pinMode(LED2, OUTPUT);
+    pinMode(RED, OUTPUT);
+    pinMode(YELLOW, OUTPUT);
+    pinMode(GREEN, OUTPUT);
+    pinMode(BUZZER, OUTPUT);
+    pinMode(mot1_F,OUTPUT);
+    pinMode(mot1_R,OUTPUT);
+    pinMode(mot2_F,OUTPUT);
+    pinMode(mot2_R,OUTPUT);
+    /*****************************/
+
+}
+
+int main(void)
+{
+  if(param_init() == -1){
+      printf("param_init Fail\n");
+      exit(1);
+  }
+
+  if (mcp23017Setup(100,0x20) == -1){         //mcp23017Setup(65以上の任意の数字,MCPのアドレス)
+      printf("Setup Fail\n");
+      exit(1);
+  }
+
+  if (mcp23017Setup(200,0x24) == -1){
+      printf("Setup Fail\n");
+      exit(1);
+  }
+
+  fd_lcd = lcdInit(4,20,8,200,201,209,202,208,203,207,204,206,205);           //LCDの設定
+  //lcdInit(行,列,ビット数,RS,E,D0,D1,D2,D3,D4,D5,D6,D7);
+
+  if (wiringPiSetup() == -1){
+      printf("Setup Fail\n");
+      exit(1);
+  }
+
+  IOsetting();
+
+ act = 1;
+
+  KOUDEN =102;
+  pthread_create(&th,NULL, (void*(*)(void*))thread_photo, NULL);
+
+  while(1){
+    delay(100);
+  }
 }
