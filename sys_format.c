@@ -17,8 +17,8 @@ int sys_format(void){
     int flg_end = 0;
 
     digitalWrite(RED,    0);
-    digitalWrite(YELLOW, 0);
-    digitalWrite(GREEN,  1);
+    digitalWrite(YELLOW, 1);
+    digitalWrite(GREEN,  0);
     printf("---------初期モード開始---------\n\n");
     LOG_PRINT("---------初期モード開始---------", LOG_OK);
     digitalWrite(LED1,1);
@@ -80,12 +80,12 @@ int sys_format(void){
                 LOG_PRINT("扉が開いている", LOG_NG);
                 error=1;      //エラーNo.
                 lcd();
-                flg_4 = 0;
+                flg_1 = 0;
                 delay(200);
                 break;
             }else{
              LOG_PRINT("扉 OK", LOG_OK);
-             flg_4 = 1;
+             flg_1 = 1;
             }
             //printf("flg_4 = %d\n",  flg_4);
 
@@ -93,14 +93,14 @@ int sys_format(void){
             if(kinsetu2 == 0 ){
                 printf("脱水部と減容部のドッキングがされていません\n");
                 LOG_PRINT("ドッキングエラー", LOG_NG);
-                error=2;
+                error=2;        // エラーNO.
                 lcd();
-                flg_1 = 0;
+                flg_2 = 0;
                 delay(200);
                 break;
             }else{
              LOG_PRINT("ドッキング OK", LOG_OK);
-             flg_1 = 1;
+             flg_2 = 1;
             }
             //printf("\rflg_1 = %d\n",  flg_1);
 
@@ -108,49 +108,31 @@ int sys_format(void){
             if(kinsetu3 == 0 ){
                 printf("屑箱を設置してください\n");
                 LOG_PRINT("屑箱なし", LOG_NG);
-                error=4;
-                lcd();
-                flg_2 = 0;
-                delay(200);
-                break;
-            }else{
-             LOG_PRINT("屑箱設置中", LOG_OK);
-             flg_2 = 1;
-            }
-            //printf("flg_2 = %d\n",  flg_2);
-
-            /* 3.   屑箱内にスポンジが残っていないか       */
-            adc01();
-            if(st==0&&teisi==0 && distance_adc01_ch4<25 && distance_adc01_ch5<25 )
-            {
-                printf("エラー:スポンジの量が多いです\n");
-                LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
-                error=5;
+                error=3;
                 lcd();
                 flg_3 = 0;
                 delay(200);
                 break;
             }else{
-             LOG_PRINT("投入口のスポンジの量がちょうどいい", LOG_OK);
+             LOG_PRINT("屑箱設置中", LOG_OK);
              flg_3 = 1;
             }
-            //printf("flg_3 = %d\n",  flg_3);
-
+            //printf("flg_2 = %d\n",  flg_2);
 
             /* 5.   脱水部にスポンジが残されていないか       */
             adc01();
             if(st==0&&teisi==0 && distance_adc01_ch0<25 && distance_adc01_ch1<25)
             {
-                printf("エラー:スポンジの量が多いです\n");
+                printf("エラー:投入口のスポンジの量が多いです\n");
                 LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
-                error=5;
+                error=4;
                 lcd();
-                flg_5 = 0;
+                flg_4 = 0;
                 delay(200);
                 break;
             }else{
-                LOG_PRINT("投入口のスポンジの量がちょうどいい", LOG_OK);
-                flg_5 = 1;
+                LOG_PRINT("投入口のスポンジの量 OK", LOG_OK);
+                flg_4 = 1;
             }
             //printf("flg_5 = %d\n",  flg_5);
 
@@ -162,17 +144,35 @@ int sys_format(void){
                 LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
                 error=5;
                 lcd();
-                flg_6= 0;
+                flg_5= 0;
                 delay(200);
                 break;
             }else{
              LOG_PRINT("投入口のスポンジの量がちょうどいい", LOG_OK);
-             flg_6 = 1;
+             flg_5 = 1;
             }
             //printf("flg_6 = %d\n",  flg_6);
 
+            /* 3.   屑箱内にスポンジが残っていないか       */
+            adc01();
+            if(st==0&&teisi==0 && distance_adc01_ch4<25 && distance_adc01_ch5<25 )
+            {
+                printf("エラー:屑箱内のスポンジの量が多いです\n");
+                LOG_PRINT("屑箱内のスポンジの量が多い",LOG_NG);
+                error=6;
+                lcd();
+                flg_6 = 0;
+                delay(200);
+                break;
+            }else{
+             LOG_PRINT("投入口のスポンジの量 OK", LOG_OK);
+             flg_6 = 1;
+            }
+            //printf("flg_3 = %d\n",  flg_3);
+
             /* 7.   モータの温度が安定動作できる範囲であるか  */
             adc02();
+            printf("モーター停止中\n");
             if(temp_adc02_ch0>=MOT_Temp){
               printf("エラー:異常な温度を検知 : 脱水部１\n");
               LOG_PRINT("異常な温度を検知 : 脱水部１", LOG_NG);
@@ -199,7 +199,7 @@ int sys_format(void){
               delay(200);
               break;
             }else{
-             LOG_PRINT("正常な温度を検知", LOG_OK);
+             LOG_PRINT("動作停止中：温度 OK", LOG_OK);
              flg_7 = 1;
             }
             //printf("flg_7 = %d\n",  flg_7);
@@ -291,29 +291,32 @@ int sys_format(void){
                 break;
             }
         }
-        while(error > 0 ){
-                if(shuttdown ==1) break;
-                digitalWrite(RED,    1);
-                digitalWrite(YELLOW, 0);
-                digitalWrite(GREEN,  0);
-                //モーターＯＦＦ
-                //エラー処理
-                adc01();
-                if(kinsetu2 == 1 && flg_1 == 0) error = 0;
-                else if(kinsetu3 == 1 && flg_2 ==1) error = 0;
-                else if(flg_3 == 1 && distance_adc01_ch4>=25 && distance_adc01_ch5>=25 )
-                    error = 0;
-                else if(kinsetu1 == 1 && flg_4 == 1) error = 0;
-                else if(flg_5 == 1 && distance_adc01_ch0>=25 && distance_adc01_ch1>=25 )
-                    error = 0;
-                else if(flg_6 == 1 && distance_adc01_ch2>=25 && distance_adc01_ch3>=25 )
-                    error = 0;
-                else if( temp_adc02_ch0>=MOT_Temp || temp_adc02_ch1>=MOT_Temp ||
-                                     temp_adc02_ch2>=MOT_Temp || temp_adc02_ch3>=MOT_Temp)
-                    if(flg_6==1) error = 0;
+        while(error != 0 ){
+            if(shuttdown ==1) break;
+            digitalWrite(RED,    1);
+            digitalWrite(YELLOW, 0);
+            digitalWrite(GREEN,  0);
+            //モーターＯＦＦ
+            //エラー処理
+            adc01();
+                 if( kinsetu1 == 1 ) error = 0;
+            else if( kinsetu2 == 1 ) error = 0;
+            else if( kinsetu3 == 1 ) error = 0;
+            else if( distance_adc01_ch4>=25 && distance_adc01_ch5>=25 )
+                error = 0;
+            else if( distance_adc01_ch0>=25 && distance_adc01_ch1>=25 )
+                error = 0;
+            else if( distance_adc01_ch2>=25 && distance_adc01_ch3>=25 )
+                error = 0;
+            else if( temp_adc02_ch0>=MOT_Temp || temp_adc02_ch1>=MOT_Temp ||
+                                 temp_adc02_ch2>=MOT_Temp || temp_adc02_ch3>=MOT_Temp)
+                error = 0;
 
-                delay(200);
-            }
+            delay(200);
+        }
+        digitalWrite(RED,    0);
+        digitalWrite(YELLOW, 1);
+        digitalWrite(GREEN,  0);
 
     }
     printf("---------初期モード終了---------\n");
