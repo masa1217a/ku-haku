@@ -12,7 +12,11 @@
 #include <string.h>
 
 #define STR_MAX 256
-#define CONFIG_FILE "setting.txt"
+#define Data_MAX 1024
+#define NOTE_ 500
+#define Setting_FILE "settings.txt"
+#define Save_FILE "save.csv"
+#define size  36
 
 /* モーター */
 #define MOT_OFF 0
@@ -21,6 +25,13 @@
 #define MOT_Clean 3                         //詰まり検知後の動作
 #define MOT_Format 4                      //初期チェック
 #define MOT_For_check 5              //初期チェック
+
+/*構造体宣言*/
+typedef struct{
+    char name[STR_MAX];    // センサなどの名前
+    int  value;            // センサなどの値
+    //char note[NOTE_];    // 備考
+}Vector;
 
 int mot1_F;                                             // 脱水モーター　正転
 int mot1_R;                                             // 脱水モーター　逆転
@@ -36,7 +47,7 @@ int mot_format_sec;
 int LIGHT;                                              // I2Cチェック用LED
 int PHOTO1;                                             // 光電センサ　受光 脱水部
 int PHOTO2;                                             // 光電センサ　受光　減容部
-int photo_conf;                                         // 正常運転以外で停止した場合１で保存される(非常停止、停止)
+int FlgKouden;                                        // 正常運転以外で停止した場合１で保存される(非常停止、停止)
 ///////////////////////////
 /* 速度センサ */
 int SPEED1;                                             //速度センサ
@@ -154,12 +165,13 @@ int thread_photo(void *ptr){
     while(pht == 1) //pht:1=受光　　pht:0=物体検知
     {
       // 停止ボタンで動作を止める
-      if( st == 1 || photo_conf == 1 ) break;
+      if( st == 1 || FlgKouden= 1 ) break;
       pht = digitalRead(wonda);            // 光電読み込み
       delay(50);
     }
     // 停止ボタンで
-    if( st == 1 ) photo_conf = 1;
+    if( st == 1 ) FlgKouden 1;
+    // 値の保存
     if( pht==0 ) printf("光電センサが物体検知\n
                         物体がなくなるまで待つ\n");
 
@@ -219,7 +231,7 @@ int thread_photo(void *ptr){
                         teisi=0;
                         mot_state  = MOT_OFF;
                         mot_state2 = MOT_OFF;
-                        printf("終了\n");
+                        printf("減容終了\n");
                     }
                 }
                 else
@@ -1009,46 +1021,71 @@ int read_param(char *param_name)
     return -1; /* not reachable */
 }
 
+int SettingRead(void)
+{
+  /*C言語の場合冒頭で宣言する*/
+  FILE *fp ;
+  int i = 0, data_count;
+  Vector vec[1024];
+  /*ファイル(save.csv)に読み込む*/
+  if((fp=fopen(Save_FILE,"r"))!=NULL){
+      i=0;
+      while(fscanf(fp, "%[^,], %d", vec[i].name, &vec[i].value) != EOF){
+          i++;
+      }
+      data_count = i;
+      /*忘れずに閉じる*/
+      fclose(fp);
+
+      // 表示
+      for(i=0; i<data_count-1; i++)
+        printf("%d : %s  =  %d\n", i, vec[i].name, vec[i].value);
+
+      printf("データの数: %d\n", data_count);
+  }
+  return 0;
+}
+
 int param_init()
 {
+  Vector vec[Data_MAX];
 
-  if((mot1_F          = read_param("mot1_F")) < 0)          return -1;
-  if((mot1_R          = read_param("mot1_R")) < 0)          return -1;
-  if((mot1_STOP       = read_param("mot1_STOP")) < 0)       return -1;
-  if((mot2_F          = read_param("mot2_F")) < 0)          return -1;
-  if((mot2_R          = read_param("mot2_R")) < 0)          return -1;
-  if((mot2_STOP       = read_param("mot2_STOP")) <  0)      return -1;
-    if((MOT_Temp       = read_param("MOT_Temp")) <  0)      return -1;
-	if((mot_clean_sec    = read_param("mot_clean_sec")) < 0)  return -1;
-	if((mot_format_sec  = read_param("mot_format_sec")) < 0)  return -1;
-  if((LIGHT           = read_param("LIGHT")) < 0)           return -1;
-  if((PHOTO1          = read_param("PHOTO1")) < 0)          return -1;
-  if((PHOTO2          = read_param("PHOTO2")) < 0)          return -1;
-  if((photo_conf      = read_param("photo_conf")) < 0)      return -1;
-  if((SPEED1          = read_param("SPEED1")) < 0)          return -1;
-  if((SPEED2          = read_param("SPEED2")) < 0)          return -1;
-  if((SPEED3          = read_param("SPEED3")) < 0)          return -1;
-  if((SPEED4          = read_param("SPEED4")) < 0)          return -1;
-  if((GEAR_DRY        = read_param("GEAR_DRY")) < 0)        return -1;
-  if((GEAR_CRASH      = read_param("GEAR_CRASH")) < 0)      return -1;
-  if((time_sp         = read_param("time_sp")) < 0)         return -1;
-  if((KINSETU1        = read_param("KINSETU1")) < 0)        return -1;
-  if((KINSETU2        = read_param("KINSETU2")) < 0)        return -1;
-  if((KINSETU3        = read_param("KINSETU3")) < 0)        return -1;
-  if((GREEN           = read_param("GREEN")) < 0)           return -1;
-  if((RED             = read_param("RED")) < 0)             return -1;
-  if((YELLOW          = read_param("YELLOW")) < 0)          return -1;
-  if((BUZZER          = read_param("BUZZER")) < 0)          return -1;
-  if((BUTTON1         = read_param("BUTTON1")) < 0)         return -1;
-  if((BUTTON2         = read_param("BUTTON2")) < 0)         return -1;
-  if((BUTTON3         = read_param("BUTTON3")) < 0)         return -1;
-  if((LED1            = read_param("LED1")) < 0)            return -1;
-  if((LED2            = read_param("LED2")) < 0)            return -1;
-  if((SW1             = read_param("SW1")) < 0)             return -1;
-  if((SW2             = read_param("SW2")) < 0)             return -1;
-  if((SW3             = read_param("SW3")) < 0)             return -1;
-  if((SW4             = read_param("SW4")) < 0)             return -1;
-
+  mot1_F          = vec[0].value;
+  mot1_R          = vec[1].value;
+  mot1_STOP       = vec[2].value;
+  mot2_F          = vec[3].value;
+  mot2_R          = vec[4].value;
+  mot2_STOP       = vec[5].value;
+  MOT_Temp        = vec[6].value;
+	mot_clean_sec   = vec[7].value;
+	mot_format_sec  = vec[8].value;
+  LIGHT           = vec[9].value;
+  PHOTO1          = vec[10].value;
+  PHOTO2          = vec[11].value;
+  SPEED1          = vec[12].value;
+  SPEED2          = vec[13].value;
+  SPEED3          = vec[14].value;
+  SPEED4          = vec[15].value;
+  GEAR_DRY        = vec[16].value;
+  GEAR_CRASH      = vec[17].value;
+  time_sp         = vec[18].value;
+  KINSETU1        = vec[19].value;
+  KINSETU2        = vec[20].value;
+  KINSETU3        = vec[21].value;
+  GREEN           = vec[22].value;
+  RED             = vec[23].value;
+  YELLOW          = vec[24].value;
+  BUZZER          = vec[25].value;
+  BUTTON1         = vec[26].value;
+  BUTTON2         = vec[27].value;
+  BUTTON3         = vec[28].value;
+  LED1            = vec[29].value;
+  LED2            = vec[30].value;
+  SW1             = vec[31].value;
+  SW2             = vec[32].value;
+  SW3             = vec[33].value;
+  SW4             = vec[34].value;
+  FlgKouden       = vec[35].value;
   return 0;
 }
 /*****************************************
