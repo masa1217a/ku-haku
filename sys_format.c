@@ -73,17 +73,33 @@ int sys_format(void){
     sleep(1);
     while(!flg_end){
         while(1){
+
+            /* 4.   脱水部投入扉が閉じているか */
+            if(kinsetu1 == 0 ){
+                printf("扉を閉めてください\n");
+                LOG_PRINT("扉が開いている", LOG_NG);
+                error=1;      //エラーNo.
+                lcd();
+                flg_4 = 0;
+                delay(200);
+                break;
+            }else{
+             LOG_PRINT("扉 OK", LOG_OK);
+             flg_4 = 1;
+            }
+            //printf("flg_4 = %d\n",  flg_4);
+
             /* 1. 脱水部と減容部のドッキングがされているか  */
             if(kinsetu2 == 0 ){
                 printf("脱水部と減容部のドッキングがされていません\n");
                 LOG_PRINT("ドッキングエラー", LOG_NG);
-                error=3;
+                error=2;
                 lcd();
                 flg_1 = 0;
                 delay(200);
                 break;
             }else{
-             LOG_PRINT("ドッキング", LOG_OK);
+             LOG_PRINT("ドッキング OK", LOG_OK);
              flg_1 = 1;
             }
             //printf("\rflg_1 = %d\n",  flg_1);
@@ -120,20 +136,6 @@ int sys_format(void){
             }
             //printf("flg_3 = %d\n",  flg_3);
 
-            /* 4.   脱水部投入扉が閉じているか */
-            if(kinsetu1 == 0 ){
-                printf("扉を閉めてください\n");
-                LOG_PRINT("扉が開いている", LOG_NG);
-                error=1;
-                lcd();
-                flg_4 = 0;
-                delay(200);
-                break;
-            }else{
-             LOG_PRINT("扉が閉まっている", LOG_OK);
-             flg_4 = 1;
-            }
-            //printf("flg_4 = %d\n",  flg_4);
 
             /* 5.   脱水部にスポンジが残されていないか       */
             adc01();
