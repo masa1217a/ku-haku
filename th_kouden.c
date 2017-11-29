@@ -199,8 +199,7 @@ int thread_photo(void *ptr){
                     }
                 }
 
-                if(kouden_num   ==  1)  pht=digitalRead( PHOTO1 );
-                else  pht=digitalRead( PHOTO2 );
+                pht=digitalRead( wonda );
 
                 if(dec_time >= 5)
                 {

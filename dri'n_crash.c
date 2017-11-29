@@ -481,9 +481,9 @@ int thread_MOT2(void){
 */
 int thread_speed(void *ptr){
 
-  int speed_count = 0;
-  int sp_flag = 0;
-  int start, end ;
+  int speed_count = 0; // 歯の数を数える変数
+  int sp_flag = 0;     // 連続で同じ条件に入らないようにする
+  int start, end ;     //
 
   int gpio_speed = sel_sen;
   int gear_;

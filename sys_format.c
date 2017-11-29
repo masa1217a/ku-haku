@@ -4,6 +4,7 @@
 int sys_format(void){
     st = 0;
     teisi = 0;
+    int fstart,fend;
     // 初期化のフラグ
     int flg_1   = 0;
     int flg_2   = 0;
@@ -174,44 +175,52 @@ int sys_format(void){
             adc02();
             printf("モーター停止中\n");
             if(temp_adc02_ch0>=MOT_Temp){
-              printf("エラー:異常な温度を検知 : 脱水部１\n");
-              LOG_PRINT("異常な温度を検知 : 脱水部１", LOG_NG);
-              error=9;
+              printf("エラー:異常な温度を検知 : 脱水部A\n");
+              LOG_PRINT("異常な温度を検知 : 脱水部A", LOG_NG);
+              error=8;
+              lcd();
             }
             if( temp_adc02_ch1>=MOT_Temp ){
-              printf("エラー:異常な温度を検知 : 脱水部２\n");
-              LOG_PRINT("異常な温度を検知 : 脱水部２", LOG_NG);
+              printf("エラー:異常な温度を検知 : 脱水部B\n");
+              LOG_PRINT("異常な温度を検知 : 脱水部B", LOG_NG);
               error=9;
+              lcd();
             }
             if( temp_adc02_ch2>=MOT_Temp ){
-              printf("エラー:異常な温度を検知 : 減容部１\n");
-              LOG_PRINT("異常な温度を検知 : 減容部１", LOG_NG);
-              error=9;
+              printf("エラー:異常な温度を検知 : 減容部A\n");
+              LOG_PRINT("異常な温度を検知 : 減容部A", LOG_NG);
+              error=10;
+              lcd();
             }
             if() temp_adc02_ch3>=MOT_Temp){
-                printf("エラー:異常な温度を検知 : 減容部２\n");
-                LOG_PRINT("異常な温度を検知 : 減容部２", LOG_NG);
-                error=9;
-            }
-            if( error == 9 ){
+              printf("エラー:異常な温度を検知 : 減容部B\n");
+              LOG_PRINT("異常な温度を検知 : 減容部B", LOG_NG);
+              error=11;
               lcd();
+            }
+            if( error >= 8 && error <= 11){
               flg_7 = 0;
               delay(200);
               break;
             }else{
-             LOG_PRINT("動作停止中：温度 OK", LOG_OK);
-             flg_7 = 1;
+              LOG_PRINT("動作停止中：温度 OK", LOG_OK);
+              flg_7 = 1;
             }
             //printf("flg_7 = %d\n",  flg_7);
 
             // モーターの動作停止中の光電センサ
+            /*
             KOUDEN = PHOTO1;
             pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);    //スレッド[pth]スタート
             delay(50);
             KOUDEN = PHOTO2;
             pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);    //スレッド[pth]スタート
-            while(kouden)
-
+            fstart = millis();
+            while(1){
+              fend = millis();
+              if( ((fend - fstart) / 1000) == 5)
+            }
+            */
 
             /* 8.   脱水部と減容部の詰まり確認　 */
             sel_sen = SPEED1;
@@ -225,6 +234,20 @@ int sys_format(void){
             delay(50);
             sel_sen = SPEED4  ;
             pthread_create( &th_sp, NULL, (void*(*)(void*))thread_speed, NULL); //スレッド[speed]スタート
+
+            // 動作停止中の検知するかどうか
+            /*
+            mot_state = MOT_OFF;
+            mot_state2 = MOT_OFF;
+            while(1){
+              if( crash_sec >= 2 ){
+                if( dry_sec >= 7 ){
+                  lcdPosition(fd_lcd,0,0);
+                  lcdPrintf (fd_lcd, "\xBF\xB8\xC4\xDE\xBE\xDD\xBB\xA0\xBE\xB2\xBC\xDE\xAE\xB3      ") ;      //ソクドセンサ　セイジョウ
+                }
+              }
+            }
+            */
             mot_state = MOT_Format;
             mot_state2 = MOT_Format;
 
