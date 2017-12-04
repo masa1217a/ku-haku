@@ -1,21 +1,54 @@
+// 温度センサ
+int sensor_Temp(void)
+{
+  adc02();
+  printf("モーター停止中\n");
+  if(temp_adc02_ch0>=MOT_Temp){
+    printf("エラー:異常な温度を検知 : 脱水部A\n");
+    LOG_PRINT("異常な温度を検知 : 脱水部A", LOG_NG);
+    error=8;
+    lcd();
+  }
+  if( temp_adc02_ch1>=MOT_Temp ){
+    printf("エラー:異常な温度を検知 : 脱水部B\n");
+    LOG_PRINT("異常な温度を検知 : 脱水部B", LOG_NG);
+    error=9;
+    lcd();
+  }
+  if( temp_adc02_ch2>=MOT_Temp ){
+    printf("エラー:異常な温度を検知 : 減容部A\n");
+    LOG_PRINT("異常な温度を検知 : 減容部A", LOG_NG);
+    error=10;
+    lcd();
+  }
+  if( temp_adc02_ch3>=MOT_Temp){
+    printf("エラー:異常な温度を検知 : 減容部B\n");
+    LOG_PRINT("異常な温度を検知 : 減容部B", LOG_NG);
+    error=11;
+    lcd();
+  }
+  if( error == 8 || error == 9){
+    delay(200);
+    return -1;
+  }else if( error == 10 || error == 11){
+    delay(200);
+    return -2;
+  }else{
+    LOG_PRINT("動作停止中：温度 OK", LOG_OK);
+    return 0;
+  }
+}
+
 /*****************************************
 *               初期化処理                *
 *****************************************/
 int sys_format(void){
     st = 0;
     teisi = 0;
+    int i;
     int fstart,fend;
     // 初期化のフラグ
-    int flg_1   = 0;
-    int flg_2   = 0;
-    int flg_3   = 0;
-    int flg_4   = 0;
-    int flg_5   = 0;
-    int flg_6   = 0;
-    int flg_7   = 0;
-    int flg_8   = 0;
-    int flg_9   = 0;
-    int flg_end = 0;
+    int flg_for[10] = {0,0,0,0,0,0,0,0,0,0};
 
     digitalWrite(RED,    0);
     digitalWrite(YELLOW, 1);
@@ -81,12 +114,12 @@ int sys_format(void){
                 LOG_PRINT("扉が開いている", LOG_NG);
                 error=1;      //エラーNo.
                 lcd();
-                flg_1 = 0;
+                flg_for[0] = 0;
                 delay(200);
                 break;
             }else{
              LOG_PRINT("扉 OK", LOG_OK);
-             flg_1 = 1;
+             flg_for[0] = 1;
             }
             //printf("flg_4 = %d\n",  flg_4);
 
@@ -96,12 +129,12 @@ int sys_format(void){
                 LOG_PRINT("ドッキングエラー", LOG_NG);
                 error=2;        // エラーNO.
                 lcd();
-                flg_2 = 0;
+                flg_for[1] = 0;
                 delay(200);
                 break;
             }else{
              LOG_PRINT("ドッキング OK", LOG_OK);
-             flg_2 = 1;
+             flg_for[1] = 1;
             }
             //printf("\rflg_1 = %d\n",  flg_1);
 
@@ -111,12 +144,12 @@ int sys_format(void){
                 LOG_PRINT("屑箱なし", LOG_NG);
                 error=3;
                 lcd();
-                flg_3 = 0;
+                flg_for[2] = 0;
                 delay(200);
                 break;
             }else{
              LOG_PRINT("屑箱設置中", LOG_OK);
-             flg_3 = 1;
+             flg_for[3] = 1;
             }
             //printf("flg_2 = %d\n",  flg_2);
 
@@ -128,12 +161,12 @@ int sys_format(void){
                 LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
                 error=4;
                 lcd();
-                flg_4 = 0;
+                flg_for[3] = 0;
                 delay(200);
                 break;
             }else{
                 LOG_PRINT("投入口のスポンジの量 OK", LOG_OK);
-                flg_4 = 1;
+                flg_for[3] = 1;
             }
             //printf("flg_5 = %d\n",  flg_5);
 
@@ -145,12 +178,12 @@ int sys_format(void){
                 LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
                 error=5;
                 lcd();
-                flg_5= 0;
+                flg_for[4] = 0;
                 delay(200);
                 break;
             }else{
              LOG_PRINT("投入口のスポンジの量がちょうどいい", LOG_OK);
-             flg_5 = 1;
+             flg_for[4] = 4;
             }
             //printf("flg_6 = %d\n",  flg_6);
 
@@ -162,50 +195,19 @@ int sys_format(void){
                 LOG_PRINT("屑箱内のスポンジの量が多い",LOG_NG);
                 error=6;
                 lcd();
-                flg_6 = 0;
+                flg_for[5] = 0;
                 delay(200);
                 break;
             }else{
              LOG_PRINT("投入口のスポンジの量 OK", LOG_OK);
-             flg_6 = 1;
+             flg_for[5] = 1;
             }
             //printf("flg_3 = %d\n",  flg_3);
 
             /* 7.   モータの温度が安定動作できる範囲であるか  */
-            adc02();
-            printf("モーター停止中\n");
-            if(temp_adc02_ch0>=MOT_Temp){
-              printf("エラー:異常な温度を検知 : 脱水部A\n");
-              LOG_PRINT("異常な温度を検知 : 脱水部A", LOG_NG);
-              error=8;
-              lcd();
-            }
-            if( temp_adc02_ch1>=MOT_Temp ){
-              printf("エラー:異常な温度を検知 : 脱水部B\n");
-              LOG_PRINT("異常な温度を検知 : 脱水部B", LOG_NG);
-              error=9;
-              lcd();
-            }
-            if( temp_adc02_ch2>=MOT_Temp ){
-              printf("エラー:異常な温度を検知 : 減容部A\n");
-              LOG_PRINT("異常な温度を検知 : 減容部A", LOG_NG);
-              error=10;
-              lcd();
-            }
-            if( temp_adc02_ch3>=MOT_Temp){
-              printf("エラー:異常な温度を検知 : 減容部B\n");
-              LOG_PRINT("異常な温度を検知 : 減容部B", LOG_NG);
-              error=11;
-              lcd();
-            }
-            if( error >= 8 && error <= 11){
-              flg_7 = 0;
-              delay(200);
-              break;
-            }else{
-              LOG_PRINT("動作停止中：温度 OK", LOG_OK);
-              flg_7 = 1;
-            }
+            if(sensor_Temp() == 0) flg_for[6] = 1;
+            else flg_for[6] = 0;
+
             //printf("flg_7 = %d\n",  flg_7);
 
             // モーターの動作停止中の光電センサ
@@ -250,56 +252,44 @@ int sys_format(void){
             */
             mot_state = MOT_Format;
             mot_state2 = MOT_Format;
-            printf("モーター停止中\n");
+            printf("モーター動作中\n");
             while(1){
                 if(shuttdown ==1) break;
 
-                adc02();
-
-                if(temp_adc02_ch0>=MOT_Temp){
-                  printf("エラー:異常な温度を検知 : 脱水部A\n");
-                  LOG_PRINT("異常な温度を検知 : 脱水部A", LOG_NG);
-                  error=8;
-                  lcd();
+                /*
+                *   温度センサが異常になるか
+                *   速度センサが歯車の停を検知した時
+                */
+                if( sensor_Temp() == -1 ){
+                  mot_state = MOT_OFF;
                 }
-                if( temp_adc02_ch1>=MOT_Temp ){
-                  printf("エラー:異常な温度を検知 : 脱水部B\n");
-                  LOG_PRINT("異常な温度を検知 : 脱水部B", LOG_NG);
-                  error=9;
-                  lcd();
-                }
-                if( temp_adc02_ch2>=MOT_Temp ){
-                  printf("エラー:異常な温度を検知 : 減容部A\n");
-                  LOG_PRINT("異常な温度を検知 : 減容部A", LOG_NG);
-                  error=10;
-                  lcd();
-                }
-                if( temp_adc02_ch3>=MOT_Temp){
-                  printf("エラー:異常な温度を検知 : 減容部B\n");
-                  LOG_PRINT("異常な温度を検知 : 減容部B", LOG_NG);
-                  error=11;
-                  lcd();
-                }
-
-                if( )
-                if( dry_secA >= 10 || dry_secB >= 10 ){
+                else if( dry_secA >= 10 || dry_secB >= 10 ){
                     mot_state = MOT_Clean;
                     //mot_state2 = MOT_Clean;
                     //printf("%.3f sec\n", dry_sec);
                 }
 
-                if( crash_secA >= 2 || crash_secB >= 2 ){
+                if( sensor_Temp() == -2 ){
+                  mot_state2 = MOT_OFF;
+                }
+                else if( crash_secA >= 2 || crash_secB >= 2 ){
                   mot_state2 = MOT_Clean;
                 }
 
+                if(motor1 == 1) mot_state = MOT_OFF;
+                if(motor2 == 1) mot_state2 = MOT_OFF;
+
+                delay(100);
+
+                // クリーンモードをクリアした時
                 if(motor1 == 1 && motor2 == 1){
-                    flg_8 = 1;
+                    flg_for[7] = 1;
                     break;
                 }
                 delay(500);
             }
 
-            if(  flg_8 == 1 )   LOG_PRINT("詰まりなし", LOG_OK);
+            if( flg_for[7] = 1 )   LOG_PRINT("詰まりなし", LOG_OK);
             else {
                 error = 6;
                 lcd();
@@ -318,9 +308,13 @@ int sys_format(void){
             mot_state  = MOT_For_check;
             mot_state2 = MOT_For_check;
             while(1){
-                if (mot_state == MOT_OFF && mot_state2 == MOT_OFF){
+                if(motor1 == 1) mot_state = MOT_OFF;
+                if(motor2 == 1) mot_state2 = MOT_OFF;
+
+                delay(100);
+                if (motor1 == 1 && motor2 == 1){
                     LOG_PRINT("スポンジ無し", LOG_OK);
-                    flg_9 = 1;
+                    flg_for[8] = 1;
                     break;
                 }
                 delay(100);
@@ -331,10 +325,13 @@ int sys_format(void){
             pthread_detach(th_sp);
 
             // 終了条件
-            if(flg_1 == 1 && flg_2 == 1 && flg_3 == 1 && flg_4 == 1 &&
-               flg_5 == 1 && flg_6 == 1 && flg_7 == 1 && flg_8 == 1 && flg_9 == 1 ){
-                 st=1;
-                flg_end = 1;
+            for(i=0; i<9; i++){
+              if(flg_for[i] == 0) break;
+            }
+
+            if(i == 9){
+                st=1;
+                flg_for[i] = 1;
                 error=0;
                 delay(200);
                 break;
@@ -371,4 +368,11 @@ int sys_format(void){
     printf("---------初期モード終了---------\n");
     LOG_PRINT("---------初期モード終了---------", LOG_OK);
     return 0;
+}
+
+int main(void)
+{
+  if(sys_format() == 0) printf("初期動作正常終了\n");
+
+  return 0;
 }
