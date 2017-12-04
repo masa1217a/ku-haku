@@ -8,6 +8,8 @@ typedef struct{
 
 speed sp;
 
+int flg_manpai=0;
+
 /*
     速度センサスレッド
     スレッドを開始する前にsel_senという変数にピンの入力を行う
@@ -132,6 +134,7 @@ int thread_speed(void *ptr){
       case SPEED4:
         crash_secB = ck_sec;
     }
+    if(flg_manpai==1) break;
   }
   return 0;
 }
