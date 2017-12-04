@@ -192,7 +192,7 @@ int sys_format(void){
               error=10;
               lcd();
             }
-            if() temp_adc02_ch3>=MOT_Temp){
+            if( temp_adc02_ch3>=MOT_Temp){
               printf("エラー:異常な温度を検知 : 減容部B\n");
               LOG_PRINT("異常な温度を検知 : 減容部B", LOG_NG);
               error=11;
@@ -250,27 +250,53 @@ int sys_format(void){
             */
             mot_state = MOT_Format;
             mot_state2 = MOT_Format;
-
+            printf("モーター停止中\n");
             while(1){
                 if(shuttdown ==1) break;
-                if( dry_sec >= 10 ){
+
+                adc02();
+
+                if(temp_adc02_ch0>=MOT_Temp){
+                  printf("エラー:異常な温度を検知 : 脱水部A\n");
+                  LOG_PRINT("異常な温度を検知 : 脱水部A", LOG_NG);
+                  error=8;
+                  lcd();
+                }
+                if( temp_adc02_ch1>=MOT_Temp ){
+                  printf("エラー:異常な温度を検知 : 脱水部B\n");
+                  LOG_PRINT("異常な温度を検知 : 脱水部B", LOG_NG);
+                  error=9;
+                  lcd();
+                }
+                if( temp_adc02_ch2>=MOT_Temp ){
+                  printf("エラー:異常な温度を検知 : 減容部A\n");
+                  LOG_PRINT("異常な温度を検知 : 減容部A", LOG_NG);
+                  error=10;
+                  lcd();
+                }
+                if( temp_adc02_ch3>=MOT_Temp){
+                  printf("エラー:異常な温度を検知 : 減容部B\n");
+                  LOG_PRINT("異常な温度を検知 : 減容部B", LOG_NG);
+                  error=11;
+                  lcd();
+                }
+
+                if( )
+                if( dry_secA >= 10 || dry_secB >= 10 ){
                     mot_state = MOT_Clean;
-                    mot_state2 = MOT_Clean;
+                    //mot_state2 = MOT_Clean;
                     //printf("%.3f sec\n", dry_sec);
-                    while(1){
-                        if(shuttdown ==1) break;
-                        if(dry_sec >= 12){
-                            flg_8 = 0;
-                            break;
-                        }else if(mot_state == MOT_OFF && mot_state2==MOT_OFF){
-                            flg_8 = 1;
-                            break;
-                        }
-                    }
-                }else if(mot_state == MOT_OFF && mot_state2==MOT_OFF){
-                    flg_8 =1;
+                }
+
+                if( crash_secA >= 2 || crash_secB >= 2 ){
+                  mot_state2 = MOT_Clean;
+                }
+
+                if(motor1 == 1 && motor2 == 1){
+                    flg_8 = 1;
                     break;
                 }
+                delay(500);
             }
 
             if(  flg_8 == 1 )   LOG_PRINT("詰まりなし", LOG_OK);

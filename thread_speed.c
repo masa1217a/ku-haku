@@ -6,6 +6,8 @@ typedef struct{
   double crash_secB = 0;
 }speed_;
 
+speed sp;
+
 /*
     速度センサスレッド
     スレッドを開始する前にsel_senという変数にピンの入力を行う
@@ -28,8 +30,6 @@ int thread_speed(void *ptr){
 
   int gpio_speed = sel_sen; // gpioピンの格納
   int gear_;                // 刃の枚数
-
-  speed sp;
 
   // 時間    ////////////
   double ck_sec = 0;
@@ -102,16 +102,16 @@ int thread_speed(void *ptr){
                 switch ( gpio_speed ) {
                   case SPEED1:
                     printf("脱水Ａ：");
-                    sp.dry_secA = ck_sec;
+                    dry_secA = ck_sec;
                   case SPEED2:
                     printf("脱水B：");
-                    sp.dry_secB = ck_sec;
+                    dry_secB = ck_sec;
                   case SPEED3:
                     printf("減容Ａ：");
-                    sp.crash_secA = ck_sec;
+                    crash_secA = ck_sec;
                   case SPEED4:
                     printf("減容Ｂ：");
-                    sp.crash_secB = ck_sec;
+                    crash_secB = ck_sec;
                 }
                 ct_sp++;
                 printf("%.3f sec\n", ck_sec);
