@@ -13,26 +13,21 @@
 
 #include "ketugou.h"
 
-int btn1=0;
-int btn2=0,sw1=0,sw2=0,sw3=0,sw4=0,shuttdown=0;
-int st=0, t1=0, t2=0, mode=1,error=0,teisi=0,d_teisi=0,d_end = 0,act=0;
-int fd_lcd=0,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
-int d_power,g_power,d_state,g_state;
-int mot_state = MOT_OFF, mot_state2=MOT_OFF;
+extern int btn1, btn2, btn3,sw1,sw2,sw3,sw4,shutdown;
+extern int st, t1, t2, mode,kenti,error,teisi,d_teisi,d_end,act;
+extern int fd_lcd,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
+extern int d_power,g_power,d_state,g_state;
+extern int mot_state, mot_state2;
 
-int sel_sen = 0;
-int KOUDEN=0;
-int motor1 = 0;
-int motor2 = 0;
-int flg_manpai = 0;
+extern double dry_sec;
+extern double crash_sec;
 
-double dry_secA   = 0;
-double dry_secB   = 0;
-double crash_secA = 0;
-double crash_secB = 0;
+extern int sel_sen;
+extern int KOUDEN;
+extern int motor1;
+extern int motor2;
 
-char LOG_FILE[100] =  "/home/pi/LOG/log.txt";        /* ログディレクトリ(通常)  */
-FILE *log_file;        /* 通常ログ */
+extern int flg_manpai;
 
 extern int mot1_F;                                             // 脱水モーター　正転
 extern int mot1_R;                                             // 脱水モーター　逆転
@@ -100,6 +95,27 @@ extern int SW4;                                                     // 減容　
 //double dry_secB   = 0;
 //double crash_secA = 0;
 //double crash_secB = 0;
+
+int read_speed(int gpio_speed )
+{
+  /* Read Current Switch Status */
+  int i;
+  int sum = 0;
+  //float devi;
+
+  for(i=0; i<10; i++){
+        sum += digitalRead( gpio_speed );
+    }
+    //printf("%d\n",sum);
+    //sum = sum / i;
+
+    if(sum >= 4)
+        status_speed = 1;
+    else
+        status_speed = 0;
+
+        return 0;
+}
 
 int thread_speed(void *ptr){
 

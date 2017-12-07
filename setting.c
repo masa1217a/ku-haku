@@ -2,114 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define STR_MAX 256
-#define Data_MAX 1024
-#define NOTE_ 500
-#define Setting_FILE "settings.txt"
-#define Save_FILE "save.csv"
-#define size  36
-
-/*構造体宣言*/
-typedef struct{
-    char name[STR_MAX];    // センサなどの名前
-    int  value;            // センサなどの値
-    //char note[NOTE_];    // 備考
-}Vector;
-
-Vector vec[Data_MAX];
-
-int mot1_F;                                             // 脱水モーター　正転
-int mot1_R;                                             // 脱水モーター　逆転
-int mot1_STOP;                                     // 脱水モーター　停止
-int mot2_F;                                             // 減容モーター　正転
-int mot2_R;                                             // 減容モーター　逆転
-int mot2_STOP;                                     // 減容モーター　停止
-int MOT_Temp;                                        //温度
-int mot_clean_sec;
-int mot_format_sec;
-///////////////////////////
-/* 透過型光電センサ */
-int LIGHT;                                              // I2Cチェック用LED
-int PHOTO1;                                             // 光電センサ　受光 脱水部
-int PHOTO2;                                             // 光電センサ　受光　減容部
-int photo_conf;                                         // 正常運転以外で停止した場合１で保存される(非常停止、停止)
-///////////////////////////
-/* 速度センサ */
-int SPEED1;                                             //速度センサ
-int SPEED2;                                             //速度センサ
-int SPEED3;                                             //速度センサ
-int SPEED4;                                             //速度センサ
-int GEAR_DRY;                                        //刀の枚数
-int GEAR_CRASH;
-int time_sp;                                          // 詰まり検知
-////////////////////////////
-/* 近接センサ */
-int KINSETU1;                                       // 近接センサ1　投入部
-int KINSETU2;                                       // 近接センサ2　ドッキング部
-int KINSETU3;                                       // 近接センサ3　屑箱
-////////////////////////////
-/* 表示灯 */
-int GREEN;                                                //表示灯   緑
-int YELLOW;                                             //表示灯   黃
-int RED;                                                     //表示灯   赤
-int BUZZER;                                             //ブザー
-////////////////////////////
-/* 操作パネルボタン */
-int BUTTON1;                                          // スタートボタン
-int BUTTON2;                                          // ストップボタン
-int BUTTON3;                                          // 電源ボタン
-///////////////////////////
-/* 操作パネルＬＥＤ */
-int LED1;                                                  //LED　通常時
-int LED2;                                                  //LED　管理時
-////////////////////////////
-/* 管理パネル */
-int SW1;                                                     // 脱水　電源
-int SW2;                                                     // 脱水　正/逆
-int SW3;                                                     // 減容　電源
-int SW4;                                                     // 減容　正/逆
-////////////////////////////
-
-char n[STR_MAX] = "aa";
-int s=1;
-char m[2]= "gg";
-
-int read_param(char *param_name)
-{
-    int i = 0, j = 0;
-    int output_param;
-    char str[STR_MAX], param[STR_MAX];
-    FILE *fin;
-
-    if ((fin = fopen(Setting_FILE, "r")) == NULL) {
-        printf("fin error:[%s]\n", Setting_FILE);
-        return -1; /* system error */
-    }
-
-    for(;;) {
-        if (fgets(str, STR_MAX, fin) == NULL) {
-            /* EOF */
-            fclose(fin);
-            return -3; /* not found keyword */
-        }
-        if (!strncmp(str, param_name, strlen(param_name))) {
-            while (str[i++] != '=') {
-                ;
-            }
-            while (str[i] != ' ') {
-                param[j++] = str[i++];
-            }
-            param[j] = '\0';
-            printf("%14s : %3s\n", param_name , param);
-            fclose(fin);
-            output_param = atoi(param);
-            return output_param;
-        }
-    }
-    fclose(fin);
-    return -1; /* not reachable */
-}
+#include "ketugou.h"
 
 int write_param(void)
 {
@@ -199,19 +92,6 @@ int param_init()
   SW2             = vec[32].value;
   SW3             = vec[33].value;
   SW4             = vec[34].value;
-  photo_conf      = vec[35].value;
-  return 0;
-}
-
-int main()
-{
-  //Vector vec[Data_MAX];
-  //if(param_init()!=0) printf("11111\n");
-  //if(write_param() != 0) printf("00000\n");
-  if(param_init() != 0) printf("000a0\n");
-  vec[35].value = 1;
-  write_param();
-  //SettingRead();
-
+  FlgKouden       = vec[35].value;
   return 0;
 }

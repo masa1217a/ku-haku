@@ -125,6 +125,27 @@ int SW3;                                                     // 減容　電源
 int SW4;                                                     // 減容　正/逆
 ////////////////////////////
 
+int btn1, btn2, btn3,sw1,sw2,sw3,sw4,shutdown;
+int st, t1, t2, mode,kenti,error,teisi,d_teisi,d_end,act;
+int fd_lcd,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
+int d_power,g_power,d_state,g_state;
+int mot_state, mot_state2;
+
+double dry_sec;
+double crash_sec;
+
+int sel_sen;
+int KOUDEN;
+int motor1;
+int motor2;
+
+int flg_manpai;
+
+double dry_secA;
+double dry_secB;
+double crash_secA;
+double crash_secB;
+
 /* ログ */
 /* macros */
 #define logN 256
@@ -148,6 +169,8 @@ int sensor_Temp(void);
 int sys_format(void);
 int volt_distance(float volt);
 double map(double v);
+void shutdown_btn(void);
+int ERROR(void);
 
 // スレッド
 int thread_photo(void *ptr);

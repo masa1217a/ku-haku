@@ -12,31 +12,26 @@
 #include <string.h>
 #include "ketugou.h"
 
-int btn1=0, btn2=0,sw1=0,sw2=0,sw3=0,sw4=0,shuttdown=0;
-int st=0, t1=0, t2=0, mode=1,error=0,teisi=0,d_teisi=0,d_end = 0,act=0;
-int fd_lcd=0,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
-int d_power,g_power,d_state,g_state;
-int mot_state = MOT_OFF, mot_state2=MOT_OFF;
-
-extern int btn1, btn2,sw1,sw2,sw3,sw4,shuttdown;
-extern int st, t1, t2, mode,error,teisi,d_teisi,d_end,act;
+extern int btn1, btn2, btn3,sw1,sw2,sw3,sw4,shutdown;
+extern int st, t1, t2, mode,kenti,error,teisi,d_teisi,d_end,act;
 extern int fd_lcd,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
 extern int d_power,g_power,d_state,g_state;
 extern int mot_state, mot_state2;
 
-int sel_sen = 0;
-int KOUDEN=0;
-int motor1 = 0;
-int motor2 = 0;
-int flg_manpai = 0;
+extern double dry_sec;
+extern double crash_sec;
 
-double dry_secA   = 0;
-double dry_secB   = 0;
-double crash_secA = 0;
-double crash_secB = 0;
+extern int sel_sen;
+extern int KOUDEN;
+extern int motor1;
+extern int motor2;
 
-char LOG_FILE[100] =  "/home/pi/LOG/log.txt";        /* ログディレクトリ(通常)  */
-FILE *log_file;        /* 通常ログ */
+extern int flg_manpai;
+
+extern double dry_secA;
+extern double dry_secB;
+extern double crash_secA;
+extern double crash_secB;
 
 // 温度センサ
 int sensor_Temp(void)
@@ -101,7 +96,7 @@ int sys_format(void){
     lcdPosition(fd_lcd,0,0);
     lcdPrintf (fd_lcd, "\xBD\xB2\xAF\xC1\xA6\xBD\xCD\xDE\xC3\x4F\x46\x46\xC6\xBC\xC3\xB8\xC0\xDE\xBB\xB2") ;        //スイッチヲスベテOFFニシテクダサイ
     while(1){
-        if(shuttdown ==1) break;
+        if(shutdown ==1) break;
         int old_sw1 = sw1;
         int old_sw2 = sw2;
         int old_sw3 = sw3;
@@ -294,7 +289,7 @@ int sys_format(void){
             mot_state2 = MOT_Format;
             printf("モーター動作中\n");
             while(1){
-                if(shuttdown ==1) break;
+                if(shutdown ==1) break;
 
                 /*
                 *   温度センサが異常になるか
@@ -378,7 +373,7 @@ int sys_format(void){
             }
         }
         while(error != 0 ){
-            if(shuttdown ==1) break;
+            if(shutdown ==1) break;
             digitalWrite(RED,    1);
             digitalWrite(YELLOW, 0);
             digitalWrite(GREEN,  0);
@@ -408,11 +403,4 @@ int sys_format(void){
     printf("---------初期モード終了---------\n");
     LOG_PRINT("---------初期モード終了---------", LOG_OK);
     return 0;
-}
-
-int main(void)
-{
-  if(sys_format() == 0) printf("初期動作正常終了\n");
-
-  return 0;
 }

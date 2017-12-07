@@ -1,27 +1,6 @@
 
 #include "ketugou.h"
 
-int btn1=0;
-int btn2=0,sw1=0,sw2=0,sw3=0,sw4=0,shuttdown=0;
-int st=0, t1=0, t2=0, mode=1,error=0,teisi=0,d_teisi=0,d_end = 0,act=0;
-int fd_lcd=0,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
-int d_power,g_power,d_state,g_state;
-int mot_state = MOT_OFF, mot_state2=MOT_OFF;
-
-double dry_secA   = 0;
-double dry_secB   = 0;
-double crash_secA = 0;
-double crash_secB = 0;
-
-int sel_sen = 0;
-int KOUDEN=0;
-int motor1 = 0;
-int motor2 = 0;
-int flg_manpai = 0;
-
-char LOG_FILE[100] =  "/home/pi/LOG/log.txt";        /* ログディレクトリ(通常)  */
-FILE *log_file;        /* 通常ログ */
-
 static volatile unsigned long time_prev = 0, time_now;
 
 static int distance_adc01_ch0 = 0;                  //測距：脱水投入口
@@ -35,6 +14,8 @@ static double temp_adc02_ch0 = 0;                   //温度：脱水モータ�
 static double temp_adc02_ch1 = 0;                   //温度：脱水モーター
 static double temp_adc02_ch2 = 0;                   //温度：減容モーター
 static double temp_adc02_ch3 = 0;                   //温度：減容モーター
+
+int status_
 
 /*****************************************
 *                           スレッド処理                                          *
@@ -443,7 +424,7 @@ void shutdown(void)
         pthread_detach(normal);
         pthread_detach(admin);
         st=1;
-        shuttdown = 1;
+        ui.shutdown = 1;
         mode = 0;
 
         digitalWrite(LED1, 0);
@@ -521,36 +502,36 @@ int thread_normal(void *ptr)
             digitalWrite(GREEN, 0);
         }
 
-        int old_sw1 = sw1;
-        int old_sw2 = sw2;
-        int old_sw3 = sw3;
-        int old_sw4 = sw4;
+        int old_ui.sw1 = ui.sw1;
+        int old_ui.sw2 = ui.sw2;
+        int old_ui.sw3 = ui.sw3;
+        int old_ui.sw4 = ui.sw4;
 
-        btn1=digitalRead(BUTTON1);
-        btn2=digitalRead(BUTTON2);
-        sw1=digitalRead(SW1);
-        sw2=digitalRead(SW2);
-        sw3=digitalRead(SW3);
-        sw4=digitalRead(SW4);
+        ui.runbtn=digitalRead(BUTTON1);
+        ui.stopbtn=digitalRead(BUTTON2);
+        ui.sw1=digitalRead(SW1);
+        ui.sw2=digitalRead(SW2);
+        ui.sw3=digitalRead(SW3);
+        ui.sw4=digitalRead(SW4);
 
-        if(sw1 == 0)    d_power= 0;             //脱水　電源
+        if(ui.sw1 == 0)    d_power= 0;             //脱水　電源
         else   d_power = 1;
-        if(sw2 == 0)    d_state = 0;                //脱水　正/逆
+        if(ui.sw2 == 0)    d_state = 0;                //脱水　正/逆
         else   d_state = 1;
-        if(sw3 == 0)    g_power = 0;                //減容　電源
+        if(ui.sw3 == 0)    g_power = 0;                //減容　電源
         else   g_power = 1;
-        if(sw4 == 0)    g_state = 0;                //減容　正/逆
+        if(ui.sw4 == 0)    g_state = 0;                //減容　正/逆
         else   g_state = 1;
 
-        if(sw1 != old_sw1) lcd();
-        if(sw2 != old_sw2) lcd();
-        if(sw3 != old_sw3) lcd();
-        if(sw4 != old_sw4) lcd();
+        if(ui.sw1 != old_ui.sw1) lcd();
+        if(ui.sw2 != old_ui.sw2) lcd();
+        if(ui.sw3 != old_ui.sw3) lcd();
+        if(ui.sw4 != old_ui.sw4) lcd();
 
 /****************************************************************************/
 /*                          スタートボタン押した時の動作                              */
 /****************************************************************************/
-        if(btn2==0 && btn1==1) {
+        if(ui.stopbtn==0 && ui.runbtn==1) {
         if(d_power == 1 || g_power == 1){
             st =0;
             kyori_count1 = 0;
@@ -662,7 +643,7 @@ int thread_normal(void *ptr)
                         lcdPosition(fd_lcd,0,0);
                         lcdPrintf (fd_lcd, "\xCC\xB8\xDB\xCA\xBE\xAF\xC1\xBC\xCF\xBC\xC0\xB6\x3F        ") ;        //フクロハセッチシマシタカ？
                     }
-                    if(shuttdown == 1) lcdClear(fd_lcd);
+                    if(ui.shutdown == 1) lcdClear(fd_lcd);
                     break;
                 }
 
@@ -689,7 +670,6 @@ int thread_normal(void *ptr)
                     error=1;
                     lcd();
                     st = 1;
-                    teisi=1;
                     act=0;
                     mot_state = MOT_OFF;
                     mot_state2 = MOT_OFF;
@@ -746,7 +726,7 @@ int thread_normal(void *ptr)
                     mot_state = MOT_Clean;
                     printf("%.3f sec\n", dry_secA);
                     while(1){
-                        if(shuttdown ==1) break;
+                        if(ui.shutdown ==1) break;
                         if(dry_secA >= 12){
                             printf("%.3f sec\n", dry_secA);
                             printf("エラー：脱水部の詰まり\n");
@@ -769,7 +749,7 @@ int thread_normal(void *ptr)
                     mot_state2 = MOT_Clean;
                     printf("%.3f sec\n", crash_secA);
                     while(1){
-                        if(shuttdown ==1) break;
+                        if(ui.shutdown ==1) break;
 
                         if(crash_secA >= 12){
                             printf("%.3f sec\n", crash_secA);
@@ -798,13 +778,13 @@ int thread_normal(void *ptr)
 /****************************************************************************/
 /*              (一時停止→スタートボタン)を長押しした時の動作                            */
 /****************************************************************************/
-        if(btn2==1) {
-            if(btn1 == 1){
+        if(ui.stopbtn==1) {
+            if(ui.runbtn == 1){
                 while(1){
-                    btn1=digitalRead(BUTTON1);
-                    btn2=digitalRead(BUTTON2);
+                    ui.runbtn=digitalRead(BUTTON1);
+                    ui.stopbtn=digitalRead(BUTTON2);
                     t1++;
-                    if(btn1==0 || btn2==0)
+                    if(ui.runbtn==0 || ui.stopbtn==0)
                     {
                         t1=0;
                         break;
@@ -821,7 +801,7 @@ int thread_normal(void *ptr)
             }
 
         }
-        if(mode==2  || shuttdown==1) break;
+        if(mode==2  || ui.shutdown==1) break;
     }
     LOG_PRINT("---------通常モード終了---------", LOG_OK);
     return 0;
@@ -840,7 +820,6 @@ int  thread_admin(void *ptr)
     lcd();
     st =0;
     act=0;
-    teisi=0;
     mode=0;
     printf("管理者モード\n");
     LOG_PRINT("---------管理者モード開始---------", LOG_OK);
@@ -861,33 +840,33 @@ lcdPrintf (fd_lcd, "\xD2\xDD\xC3\xC5\xDD\xBD\xD3\xB0\xC4\xDE \xC1\xAD\xB3\xB2  "
             digitalWrite(GREEN, 0);
         }
 
-        int old_sw1 = sw1;
-        int old_sw2 = sw2;
-        int old_sw3 = sw3;
-        int old_sw4 = sw4;
+        int old_ui.sw1 = ui.sw1;
+        int old_ui.sw2 = ui.sw2;
+        int old_ui.sw3 = ui.sw3;
+        int old_ui.sw4 = ui.sw4;
 
-        btn1=digitalRead(BUTTON1);
-        btn2=digitalRead(BUTTON2);
-        sw1=digitalRead(SW1);
-        sw2=digitalRead(SW2);
-        sw3=digitalRead(SW3);
-        sw4=digitalRead(SW4);
+        ui.runbtn=digitalRead(BUTTON1);
+        ui.stopbtn=digitalRead(BUTTON2);
+        ui.sw1=digitalRead(SW1);
+        ui.sw2=digitalRead(SW2);
+        ui.sw3=digitalRead(SW3);
+        ui.sw4=digitalRead(SW4);
 
-        if(sw1 == 0)    d_power= 0;             //脱水　電源
+        if(ui.sw1 == 0)    d_power= 0;             //脱水　電源
         else   d_power = 1;
-        if(sw2 == 0)    d_state = 0;                //脱水　正/逆
+        if(ui.sw2 == 0)    d_state = 0;                //脱水　正/逆
         else   d_state = 1;
-        if(sw3 == 0)    g_power = 0;                //減容　電源
+        if(ui.sw3 == 0)    g_power = 0;                //減容　電源
         else   g_power = 1;
-        if(sw4 == 0)    g_state = 0;                //減容　正/逆
+        if(ui.sw4 == 0)    g_state = 0;                //減容　正/逆
         else   g_state = 1;
 
-        if(sw1 != old_sw1) lcd();
-        if(sw2 != old_sw2) lcd();
-        if(sw3 != old_sw3) lcd();
-        if(sw4 != old_sw4) lcd();
+        if(ui.sw1 != old_ui.sw1) lcd();
+        if(ui.sw2 != old_ui.sw2) lcd();
+        if(ui.sw3 != old_ui.sw3) lcd();
+        if(ui.sw4 != old_ui.sw4) lcd();
 
-        if(btn2==0 && btn1==1) {                            //スタートボタン押した時の動作
+        if(ui.stopbtn==0 && ui.runbtn==1) {                            //スタートボタン押した時の動作
         if(d_power == 1 || g_power == 1){
             st =0;
             printf("スタート\n");
@@ -921,13 +900,13 @@ lcdPrintf (fd_lcd, "\xD2\xDD\xC3\xC5\xDD\xBD\xD3\xB0\xC4\xDE \xC1\xAD\xB3\xB2  "
         }
         }
 
-        if(btn2==1) {                                   //(一時停止→スタートボタン)を長押しした時の動作
-            if(btn1 == 1){
+        if(ui.stopbtn==1) {                                   //(一時停止→スタートボタン)を長押しした時の動作
+            if(ui.runbtn == 1){
                 while(1){
-                    btn1=digitalRead(BUTTON1);
-                    btn2=digitalRead(BUTTON2);
+                    ui.runbtn=digitalRead(BUTTON1);
+                    ui.stopbtn=digitalRead(BUTTON2);
                     t2++;
-                    if(btn1==0|| btn2==0)
+                    if(ui.runbtn==0|| ui.stopbtn==0)
                     {
                         t2=0;
                         break;
@@ -949,7 +928,7 @@ lcdPrintf (fd_lcd, "\xD2\xDD\xC3\xC5\xDD\xBD\xD3\xB0\xC4\xDE \xC1\xAD\xB3\xB2  "
             }
         }
 
-        if(mode==1 || shuttdown==1) break;
+        if(mode==1 || ui.shutdown==1) break;
     }
     LOG_PRINT("---------管理者モード終了---------", LOG_OK);
     return 0;
@@ -1196,7 +1175,7 @@ int read_speed(int gpio_speed )
 
 int lcd(void)
 {
-    if(sw1 == 1){
+    if(ui.sw1 == 1){
         lcdPosition(fd_lcd,8,2);
         lcdPrintf (fd_lcd, "ON ") ;
     }
@@ -1205,7 +1184,7 @@ int lcd(void)
         lcdPrintf (fd_lcd, "OFF") ;
     }
 
-    if(sw3 == 1){
+    if(ui.sw3 == 1){
         lcdPosition(fd_lcd,8,3);
         lcdPrintf (fd_lcd, "ON ") ;
     }
@@ -1214,7 +1193,7 @@ int lcd(void)
         lcdPrintf (fd_lcd, "OFF") ;
     }
 
-    if(sw2 == 0){
+    if(ui.sw2 == 0){
         lcdPosition(fd_lcd,15,2);
         lcdPrintf (fd_lcd, "\xBE\xB2   ") ;                 //セイ
     }
@@ -1223,7 +1202,7 @@ int lcd(void)
         lcdPrintf (fd_lcd, "\xB7\xDE\xAC\xB8") ;        //ギャク
     }
 
-    if(sw4 == 0){
+    if(ui.sw4 == 0){
         lcdPosition(fd_lcd,15,3);
         lcdPrintf (fd_lcd, "\xBE\xB2   ") ;                 //セイ
     }
@@ -1248,7 +1227,7 @@ void IOsetting(void){
     /**********I/O設定**********/
     pinMode(BUTTON1, INPUT);
     wiringPiISR( BUTTON2, INT_EDGE_RISING, stop );         //一時停止ボタンの外部割り込み設定てきなやつ
-    wiringPiISR( BUTTON3, INT_EDGE_RISING, shutdown );         //シャットダウンボタンの外部割り込み設定てきなやつ
+    pinMode(BUTTON3, INPUT);         //シャットダウンボタンの外部割り込み設定てきなやつ
     pinMode(SW1, INPUT);
     pinMode(SW2, INPUT);
     pinMode(SW3, INPUT);
