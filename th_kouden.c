@@ -1,132 +1,26 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <wiringPi.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <lcd.h>
-#include <bcm2835.h>
-#include <mcp23017.h>
-#include <math.h>
-#include <string.h>
 
-#define STR_MAX 256
-#define Data_MAX 1024
-#define NOTE_ 500
-#define Setting_FILE "settings.txt"
-#define Save_FILE "save.csv"
-#define size  36
+#include "ketugou.h"
 
-/*構造体宣言*/
-typedef struct{
-    char name[STR_MAX];    // センサなどの名前
-    int  value;            // センサなどの値
-    //char note[NOTE_];    // 備考
-}Vector;
-
-Vector vec[Data_MAX];
-
-/* モーター */
-#define MOT_OFF 0
-#define MOT_For 1                              //Forwards正転
-#define MOT_Rev 2                              //Reversal逆転
-#define MOT_Clean 3                         //詰まり検知後の動作
-#define MOT_Format 4                      //初期チェック
-#define MOT_For_check 5              //初期チェック
-
-int mot1_F;                                             // 脱水モーター　正転
-int mot1_R;                                             // 脱水モーター　逆転
-int mot1_STOP;                                     // 脱水モーター　停止
-int mot2_F;                                             // 減容モーター　正転
-int mot2_R;                                             // 減容モーター　逆転
-int mot2_STOP;                                     // 減容モーター　停止
-int MOT_Temp;                                        //温度
-int mot_clean_sec;
-int mot_format_sec;
-///////////////////////////
-/* 透過型光電センサ */
-int LIGHT;                                              // I2Cチェック用LED
-int PHOTO1;                                             // 光電センサ　受光 脱水部
-int PHOTO2;                                             // 光電センサ　受光　減容部
-int FlgKouden;                                         //
-///////////////////////////
-/* 速度センサ */
-int SPEED1;                                             //速度センサ
-int SPEED2;                                             //速度センサ
-int SPEED3;                                             //速度センサ
-int SPEED4;                                             //速度センサ
-int GEAR_DRY;                                        //刀の枚数
-int GEAR_CRASH;
-int time_sp;                                          // 詰まり検知
-////////////////////////////
-/* 近接センサ */
-int KINSETU1;                                       // 近接センサ1　投入部
-int KINSETU2;                                       // 近接センサ2　ドッキング部
-int KINSETU3;                                       // 近接センサ3　屑箱
-////////////////////////////
-/* 表示灯 */
-int GREEN;                                                //表示灯   緑
-int YELLOW;                                             //表示灯   黃
-int RED;                                                     //表示灯   赤
-int BUZZER;                                             //ブザー
-////////////////////////////
-/* 操作パネルボタン */
-int BUTTON1;                                          // スタートボタン
-int BUTTON2;                                          // ストップボタン
-int BUTTON3;                                          // 電源ボタン
-///////////////////////////
-/* 操作パネルＬＥＤ */
-int LED1;                                                  //LED　通常時
-int LED2;                                                  //LED　管理時
-////////////////////////////
-/* 管理パネル */
-int SW1;                                                     // 脱水　電源
-int SW2;                                                     // 脱水　正/逆
-int SW3;                                                     // 減容　電源
-int SW4;                                                     // 減容　正/逆
-////////////////////////////
-/* ログ */
-/* macros */
-#define logN 256
-#define LOG_OK  0                                /* テスト関数戻り値(正常)*/
-#define LOG_NG -1                                /* テスト関数戻り値(異常)*/
-
-char LOG_FILE[100] =  "/home/pi/LOG/log.txt";        /* ログディレクトリ(通常)  */
-FILE *log_file;        /* 通常ログ */
-////////////////////////////
-
-volatile unsigned long time_prev = 0, time_now;
-unsigned long time_chat =500;
-int btn1=0, btn2=0,sw1=0,sw2=0,sw3=0,sw4=0,shuttdown=0;
+int btn1=0;
+int btn2=0,sw1=0,sw2=0,sw3=0,sw4=0,shuttdown=0;
 int st=0, t1=0, t2=0, mode=1,error=0,teisi=0,d_teisi=0,d_end = 0,act=0;
 int fd_lcd=0,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
 int d_power,g_power,d_state,g_state;
 int mot_state = MOT_OFF, mot_state2=MOT_OFF;
-int volt_distance(float volt);
-double map(double v);
-
-double dry_sec   = 0;
-double crash_sec = 0;
 
 int sel_sen = 0;
 int KOUDEN=0;
+int motor1 = 0;
+int motor2 = 0;
+int flg_manpai = 0;
 
-int adc01(void);
-int adc02(void);
-int read_speed(int gpio_speed);
-int lcd(void);
+double dry_secA   = 0;
+double dry_secB   = 0;
+double crash_secA = 0;
+double crash_secB = 0;
 
-
-
-pthread_t normal;
-pthread_t admin;
-pthread_t th;
-pthread_t th_sp;
-pthread_t th_ph;
-
-void LOG_PRINT(char log_txt[256], int log_status );
-void IOsetting(void);
+char LOG_FILE[100] =  "/home/pi/LOG/log.txt";        /* ログディレクトリ(通常)  */
+FILE *log_file;        /* 通常ログ */
 
 /*****************************************
 *                           スレッド処理                                          *
@@ -245,63 +139,6 @@ int thread_photo(void *ptr){
     return 0;
 }
 
-/*****************************************
-*                           外部割り込み                                          *
-******************************************/
-//シャットダウンボタン
-void shutdown(void)
-{
-    time_now = millis();
-    if(time_now-time_prev > time_chat){
-        mot_state = MOT_OFF;
-        mot_state2 = MOT_OFF;
-        pthread_detach(th);
-        pthread_detach(normal);
-        pthread_detach(admin);
-        st=1;
-        shuttdown = 1;
-        mode = 0;
-
-        digitalWrite(LED1, 0);
-        digitalWrite(LED2, 0);
-        digitalWrite(RED, 0);
-        digitalWrite(LIGHT, 0);
-        digitalWrite(YELLOW, 0);
-        digitalWrite(GREEN, 0);
-        digitalWrite(BUZZER, 0);
-        digitalWrite(mot1_F,0);
-        digitalWrite(mot1_R,0);
-        lcdClear(fd_lcd);
-
-        printf("おわり\n");
-        //system("shutdown -h now");
-        exit(1);
-    }
-    time_prev = time_now;
-}
-
-//一時停止ボタン
-void stop(void){
-  void *ret;
-	if(act==1){
-        time_now = millis();
-        if(time_now-time_prev > time_chat){
-            st = 1;
-            teisi=1;
-            mot_state = MOT_OFF;
-            mot_state2 = MOT_OFF;
-            delay(100);
-            if (pthread_join(th, &ret) != 0) {
-              perror("pthread_create() error");
-              exit(3);
-            }
-            if(write_param() != 0) printf("aaa\n");
-            printf("一時停止\n");
-        }
-    time_prev = time_now;
-	}
-}
-
 int write_param(void)
 {
   /*C言語の場合冒頭で宣言する*/
@@ -390,73 +227,4 @@ int param_init()
   SW4             = vec[34].value;
   FlgKouden      = vec[35].value;
   return 0;
-}
-
-void IOsetting(void){
-
-    /**********I/O設定**********/
-    pinMode(BUTTON1, INPUT);
-    wiringPiISR( BUTTON2, INT_EDGE_RISING, stop );         //一時停止ボタンの外部割り込み設定てきなやつ
-    wiringPiISR( BUTTON3, INT_EDGE_RISING, shutdown );         //シャットダウンボタンの外部割り込み設定てきなやつ
-    pinMode(SW1, INPUT);
-    pinMode(SW2, INPUT);
-    pinMode(SW3, INPUT);
-    pinMode(SW4, INPUT);
-    pinMode(PHOTO1, INPUT);
-    pinMode(PHOTO2, INPUT);
-    pinMode(SPEED1, INPUT);
-    pinMode(KINSETU1, INPUT);
-    pinMode(KINSETU2, INPUT);
-    pinMode(KINSETU3, INPUT);
-
-    pinMode(LIGHT,OUTPUT);
-    pinMode(LED1, OUTPUT);
-    pinMode(LED2, OUTPUT);
-    pinMode(RED, OUTPUT);
-    pinMode(YELLOW, OUTPUT);
-    pinMode(GREEN, OUTPUT);
-    pinMode(BUZZER, OUTPUT);
-    pinMode(mot1_F,OUTPUT);
-    pinMode(mot1_R,OUTPUT);
-    pinMode(mot2_F,OUTPUT);
-    pinMode(mot2_R,OUTPUT);
-    /*****************************/
-
-}
-
-int main(void)
-{
-  if(param_init() == -1){
-      printf("param_init Fail\n");
-      exit(1);
-  }
-
-  if (mcp23017Setup(100,0x20) == -1){         //mcp23017Setup(65以上の任意の数字,MCPのアドレス)
-      printf("Setup Fail\n");
-      exit(1);
-  }
-
-  if (mcp23017Setup(200,0x24) == -1){
-      printf("Setup Fail\n");
-      exit(1);
-  }
-
-  fd_lcd = lcdInit(4,20,8,200,201,209,202,208,203,207,204,206,205);           //LCDの設定
-  //lcdInit(行,列,ビット数,RS,E,D0,D1,D2,D3,D4,D5,D6,D7);
-
-  if (wiringPiSetup() == -1){
-      printf("Setup Fail\n");
-      exit(1);
-  }
-
-  IOsetting();
-
- act = 1;
-
-  KOUDEN =102;
-  pthread_create(&th,NULL, (void*(*)(void*))thread_photo, NULL);
-
-  while(1){
-    delay(100);
-  }
 }

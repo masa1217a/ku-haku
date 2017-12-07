@@ -1,27 +1,67 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <wiringPi.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <time.h>
+#include <errno.h>
+#include <lcd.h>
+#include <bcm2835.h>
+#include <mcp23017.h>
+#include <math.h>
+#include <string.h>
+#include "ketugou.h"
+
+int btn1=0, btn2=0,sw1=0,sw2=0,sw3=0,sw4=0,shuttdown=0;
+int st=0, t1=0, t2=0, mode=1,error=0,teisi=0,d_teisi=0,d_end = 0,act=0;
+int fd_lcd=0,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
+int d_power,g_power,d_state,g_state;
+int mot_state = MOT_OFF, mot_state2=MOT_OFF;
+
+extern int btn1, btn2,sw1,sw2,sw3,sw4,shuttdown;
+extern int st, t1, t2, mode,error,teisi,d_teisi,d_end,act;
+extern int fd_lcd,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
+extern int d_power,g_power,d_state,g_state;
+extern int mot_state, mot_state2;
+
+int sel_sen = 0;
+int KOUDEN=0;
+int motor1 = 0;
+int motor2 = 0;
+int flg_manpai = 0;
+
+double dry_secA   = 0;
+double dry_secB   = 0;
+double crash_secA = 0;
+double crash_secB = 0;
+
+char LOG_FILE[100] =  "/home/pi/LOG/log.txt";        /* ログディレクトリ(通常)  */
+FILE *log_file;        /* 通常ログ */
+
 // 温度センサ
 int sensor_Temp(void)
 {
   adc02();
   printf("モーター停止中\n");
-  if(temp_adc02_ch0>=MOT_Temp){
+  if(temp.dryA>=MOT_Temp){
     printf("エラー:異常な温度を検知 : 脱水部A\n");
     LOG_PRINT("異常な温度を検知 : 脱水部A", LOG_NG);
     error=8;
     lcd();
   }
-  if( temp_adc02_ch1>=MOT_Temp ){
+  if( temp.dryB>=MOT_Temp ){
     printf("エラー:異常な温度を検知 : 脱水部B\n");
     LOG_PRINT("異常な温度を検知 : 脱水部B", LOG_NG);
     error=9;
     lcd();
   }
-  if( temp_adc02_ch2>=MOT_Temp ){
+  if( temp.crashA>=MOT_Temp ){
     printf("エラー:異常な温度を検知 : 減容部A\n");
     LOG_PRINT("異常な温度を検知 : 減容部A", LOG_NG);
     error=10;
     lcd();
   }
-  if( temp_adc02_ch3>=MOT_Temp){
+  if( temp.crashB>=MOT_Temp){
     printf("エラー:異常な温度を検知 : 減容部B\n");
     LOG_PRINT("異常な温度を検知 : 減容部B", LOG_NG);
     error=11;
@@ -105,7 +145,7 @@ int sys_format(void){
     lcdPosition(fd_lcd,0,0);
     lcdPrintf (fd_lcd, "\xBE\xAF\xC4\xB1\xAF\xCC\xDF\xC1\xAD\xB3          ") ;      //セットアップチュウ
     sleep(1);
-    while(!flg_end){
+    while(!flg_for[9]){
         while(1){
 
             /* 4.   脱水部投入扉が閉じているか */
@@ -155,7 +195,7 @@ int sys_format(void){
 
             /* 5.   脱水部にスポンジが残されていないか       */
             adc01();
-            if(st==0&&teisi==0 && distance_adc01_ch0<25 && distance_adc01_ch1<25)
+            if(st==0&&teisi==0 && dist.ch0<25 && dist.ch1<25)
             {
                 printf("エラー:投入口のスポンジの量が多いです\n");
                 LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
@@ -172,7 +212,7 @@ int sys_format(void){
 
             /* 6.   減容部にスポンジが残されていないか       */
             adc01();
-            if(st==0&&teisi==0 && distance_adc01_ch2<25 && distance_adc01_ch3<25)
+            if(st==0&&teisi==0 && dist.ch2<25 && dist.ch3<25)
             {
                 printf("エラー:スポンジの量が多いです\n");
                 LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
@@ -189,7 +229,7 @@ int sys_format(void){
 
             /* 3.   屑箱内にスポンジが残っていないか       */
             adc01();
-            if(st==0&&teisi==0 && distance_adc01_ch4<25 && distance_adc01_ch5<25 )
+            if(st==0&&teisi==0 && dist.ch4<25 && dist.ch5<25 )
             {
                 printf("エラー:屑箱内のスポンジの量が多いです\n");
                 LOG_PRINT("屑箱内のスポンジの量が多い",LOG_NG);
@@ -348,14 +388,14 @@ int sys_format(void){
                  if( kinsetu1 == 1 ) error = 0;
             else if( kinsetu2 == 1 ) error = 0;
             else if( kinsetu3 == 1 ) error = 0;
-            else if( distance_adc01_ch4>=25 && distance_adc01_ch5>=25 )
+            else if( dist.ch4>=25 && dist.ch5>=25 )
                 error = 0;
-            else if( distance_adc01_ch0>=25 && distance_adc01_ch1>=25 )
+            else if( dist.ch0>=25 && dist.ch1>=25 )
                 error = 0;
-            else if( distance_adc01_ch2>=25 && distance_adc01_ch3>=25 )
+            else if( dist.ch2>=25 && dist.ch3>=25 )
                 error = 0;
-            else if( temp_adc02_ch0>=MOT_Temp || temp_adc02_ch1>=MOT_Temp ||
-                                 temp_adc02_ch2>=MOT_Temp || temp_adc02_ch3>=MOT_Temp)
+            else if( temp.dryA>=MOT_Temp || temp.dryB>=MOT_Temp ||
+                                 temp.crashA>=MOT_Temp || temp.crashB>=MOT_Temp)
                 error = 0;
 
             delay(200);
