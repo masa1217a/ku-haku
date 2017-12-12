@@ -28,11 +28,6 @@ extern int motor2;
 
 extern int flg_manpai;
 
-extern double dry_secA;
-extern double dry_secB;
-extern double crash_secA;
-extern double crash_secB;
-
 // 温度センサ
 int sensor_Temp(void)
 {
@@ -298,7 +293,7 @@ int sys_format(void){
                 if( sensor_Temp() == -1 ){
                   mot_state = MOT_OFF;
                 }
-                else if( dry_secA >= 10 || dry_secB >= 10 ){
+                else if( sp.dry_secA >= 10 || sp.dry_secB >= 10 ){
                     mot_state = MOT_Clean;
                     //mot_state2 = MOT_Clean;
                     //printf("%.3f sec\n", dry_sec);
@@ -307,7 +302,7 @@ int sys_format(void){
                 if( sensor_Temp() == -2 ){
                   mot_state2 = MOT_OFF;
                 }
-                else if( crash_secA >= 2 || crash_secB >= 2 ){
+                else if( sp.crash_secA >= 2 || sp.crash_secB >= 2 ){
                   mot_state2 = MOT_Clean;
                 }
 

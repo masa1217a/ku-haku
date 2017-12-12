@@ -98,7 +98,7 @@ int thread_photo(void *ptr){
                         d_end = 1;
                         FlgKouden = 0;
                         vec[35].value = FlgKouden;
-                        if(write_param() != 0) printf("aaa\n");
+                        write_param();
                         printf("脱水終了\n");
                         return 0;
                     }else{
@@ -107,7 +107,7 @@ int thread_photo(void *ptr){
                         dec_time = 0;
                         FlgKouden = 0;
                         vec[35].value = FlgKouden;
-                        if(write_param() != 0) printf("aaa\n");
+                        write_param();
                         teisi=0;
                         mot_state  = MOT_OFF;
                         mot_state2 = MOT_OFF;

@@ -56,10 +56,10 @@ Dist dist;
 
 // 温度センサ
 typedef struct{
-  int dryA;
-  int dryB;
-  int crashA;
-  int crashB;
+  double dryA;
+  double dryB;
+  double crashA;
+  double crashB;
 }Temp;
 
 Temp temp;
@@ -141,10 +141,6 @@ int motor2;
 
 int flg_manpai;
 
-double dry_secA;
-double dry_secB;
-double crash_secA;
-double crash_secB;
 
 /* ログ */
 /* macros */
@@ -153,11 +149,12 @@ double crash_secB;
 #define LOG_NG -1                                /* テスト関数戻り値(異常)*/
 ////////////////////////////
 
-extern pthread_t normal;
-extern pthread_t admin;
-extern pthread_t th;
-extern pthread_t th_sp;
-extern pthread_t th_ph;
+pthread_t normal;
+pthread_t admin;
+pthread_t th;
+pthread_t th_sp;
+pthread_t th_ph;
+pthread_t th_file;
 
 int adc01(void);
 int adc02(void);
@@ -171,6 +168,8 @@ int volt_distance(float volt);
 double map(double v);
 void shutdown_btn(void);
 int ERROR(void);
+void write_param(void);
+void write_value(char *sensor_name);
 
 // スレッド
 int thread_photo(void *ptr);

@@ -12,76 +12,6 @@ static double temp_adc02_ch1 = 0;                   //温度：脱水モータ�
 static double temp_adc02_ch2 = 0;                   //温度：減容モーター
 static double temp_adc02_ch3 = 0;                   //温度：減容モーター
 
-/*エラー解除ボタン*/
-int ERROR(void){
-	int buzzer = 0;
-
-	digitalWrite(RED, 1);
-	digitalWrite(YELLOW, 0);
-	digitalWrite(GREEN, 0);
-
-	while(error > 0){
-         btn2=digitalRead(BUTTON2);
-         btn3=digitalRead(BUTTON3);
-
-        if(btn3 == 1){
-                shutdown_btn();
-        }
-		if(btn2==1) {
-			if(error == 1){
-				if(kinsetu1  == 1) error = 0;
-				else buzzer = 1;
-			}else if(error == 2){
-				if(kinsetu2  == 1) error = 0;
-				else buzzer = 1;
-			}else if(error == 3){
-				if(kinsetu3  == 1) error = 0;
-				else buzzer = 1;
-			}else if(error == 4){
-				adc01();
-				if(distance_adc01_ch0>=25 && distance_adc01_ch1>=25) error = 0;
-				else buzzer = 1;
-			}else if(error == 5){
-				adc01();
-                if(distance_adc01_ch4>=25 && distance_adc01_ch5>=25) error = 0;
-                else buzzer = 1;
-			}else if(error == 6){
-				error = 0;
-			}else if(error == 7){
-				error = 0;
-			}else if(error == 8){
-				adc02();
-                if(temp_adc02_ch0<MOT_Temp)error = 0;
-				else buzzer = 1;
-			}else if(error == 9){
-				adc02();
-                if(temp_adc02_ch1<MOT_Temp)error = 0;
-                else buzzer = 1;
-			}else if(error == 10){
-				adc02();
-                if(temp_adc02_ch2<MOT_Temp)error = 0;
-                else buzzer = 1;
-			}else if(error == 11){
-				adc02();
-                if(temp_adc02_ch3<MOT_Temp)error = 0;
-                else buzzer = 1;
-			}else if(error == 12) error = 0;
-
-			if(buzzer == 1){
-				digitalWrite(BUZZER, 1);
-				delay(500);
-				digitalWrite(BUZZER, 0);
-			}
-			delay(100);		//チャタ対策
-		}
-		delay(200);
-	}
-	lcdPosition(fd_lcd,0,0);
-	lcdPrintf (fd_lcd, "\xB4\xD7\xB0\xB6\xB2\xBC\xDE\xAE");
-     LOG_PRINT("エラー解除", LOG_OK);
-	return 0;
-}
-
 /*****************************************
  *                              関数                                                  *
  * ****************************************/
@@ -196,6 +126,15 @@ int adc01(void)
   distance_adc01_ch4 = distance_adc01_ch4 / loop_count;
   distance_adc01_ch5 = distance_adc01_ch5 / loop_count;
 
+  dist.ch0 = distance_adc01_ch0;
+  dist.ch1 = distance_adc01_ch1;
+  dist.ch2 = distance_adc01_ch2;
+  dist.ch3 = distance_adc01_ch3;
+  dist.ch4 = distance_adc01_ch4;
+  dist.ch5 = distance_adc01_ch5;
+
+  write_value("Distance");
+
   //printf("ADC01 CH0 Distance %d cm\n", distance_adc01_ch0);
   //printf("ADC01 CH1 Distance %d cm\n", distance_adc01_ch1);
   //printf("ADC01 CH2 Distance %d cm\n", distance_adc01_ch2);
@@ -280,6 +219,14 @@ int adc02(void)
   temp_adc02_ch1 = temp_adc02_ch1 / loop_count;
   temp_adc02_ch2 = temp_adc02_ch2 / loop_count;
   temp_adc02_ch3 = temp_adc02_ch3 / loop_count;
+
+  temp.dryA   = temp_adc02_ch0;
+  temp.dryB   = temp_adc02_ch1;
+  temp.crashA = temp_adc02_ch2;
+  temp.crashB = temp_adc02_ch3;
+
+  write_value("Temprature");
+
    //printf("CH0 Temprature %g ℃\n", temp_adc02_ch0);
    //printf("CH1 Temprature %g ℃\n", temp_adc02_ch1);
    //printf("CH2 Temprature %g ℃\n", temp_adc02_ch2);

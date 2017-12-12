@@ -63,11 +63,6 @@ extern int motor2;
 
 extern int flg_manpai;
 
-extern double dry_secA;
-extern double dry_secB;
-extern double crash_secA;
-extern double crash_secB;
-
 static volatile unsigned long time_prev = 0, time_now;
 
 pthread_t normal;
@@ -82,7 +77,6 @@ pthread_t th_ph;
     makefileを活用する
     デバックをやル
 */
-
 
 //センサ読み込みスレッド
 int thread_Read(void *ptr){
@@ -114,7 +108,6 @@ void stop(void){
         time_now = millis();
         if(time_now-time_prev > 500){
             st = 1;
-            teisi=1;
             mot_state = MOT_OFF;
             mot_state2 = MOT_OFF;
             printf("一時停止\n");
@@ -145,7 +138,6 @@ int thread_normal(void *ptr)
     d_end = 0;
     act=0;
     st =0;
-    teisi=0;
     printf("通常モード\n");
     LOG_PRINT("---------通常モード開始---------", LOG_OK);
     digitalWrite(LED1, 1);
@@ -228,14 +220,14 @@ int thread_normal(void *ptr)
             adc01();
             if(st==0)
             {
-                if(distance_adc01_ch0<25 || distance_adc01_ch1<25){                 //測距：脱水投入口
+                if((dist.ch0)<25 || (dist.ch1)<25){                 //測距：脱水投入口
                     printf("エラー:スポンジの量が多いです（脱水投入口）\n");
                     LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
                     error=4;
                     lcd();
                     st=1;
                     delay(100);
-                }else if(distance_adc01_ch4<25 || distance_adc01_ch5<25){                     //測距：屑箱
+                }else if(dist.ch4<25 || dist.ch5<25){                     //測距：屑箱
                     printf("エラー:スポンジの量が多いです（屑箱）\n");
                     LOG_PRINT("屑箱のスポンジの量が多い",LOG_NG);
                     error=5;
@@ -317,11 +309,11 @@ int thread_normal(void *ptr)
                 }
 
 				adc02();
-                if(temp_adc02_ch0>=MOT_Temp || temp_adc02_ch1>=MOT_Temp || temp_adc02_ch2>=MOT_Temp || temp_adc02_ch3>=MOT_Temp){
-                    if(temp_adc02_ch0>=MOT_Temp)error = 8;
-                    if(temp_adc02_ch1>=MOT_Temp)error = 9;
-                    if(temp_adc02_ch2>=MOT_Temp)error = 10;
-                    if(temp_adc02_ch3>=MOT_Temp)error = 11;
+                if(temp.dryA>=MOT_Temp || temp.dryB>=MOT_Temp || temp.crashA>=MOT_Temp || temp.crashB>=MOT_Temp){
+                    if(temp.dryA>=MOT_Temp)error = 8;
+                    if(temp.dryB>=MOT_Temp)error = 9;
+                    if(temp.crashA>=MOT_Temp)error = 10;
+                    if(temp.crashB>=MOT_Temp)error = 11;
                     LOG_PRINT("異常な温度を検知", LOG_NG);
                     st = 1;
                     lcd();
@@ -347,7 +339,6 @@ int thread_normal(void *ptr)
                     }
                     lcd();
                     st = 1;
-                    teisi=1;
                     act=0;
                     mot_state = MOT_OFF;
                     mot_state2 = MOT_OFF;
@@ -355,7 +346,7 @@ int thread_normal(void *ptr)
                 }
 
                 adc01();
-                if(distance_adc01_ch4<25 || distance_adc01_ch5<25){                     //測距：屑箱
+                if(dist.ch4<25 || dist.ch5<25){                     //測距：屑箱
                     kyori_count1++;
                     if(kyori_count1 >= 25){
 						printf("屑箱が満杯\n");
@@ -369,7 +360,7 @@ int thread_normal(void *ptr)
                 else kyori_count1 = 0;
 
                 if(kyori_state == 0){
-                    if(distance_adc01_ch2<15 || distance_adc01_ch3<15){                 //測距：減容貯蓄部      満杯検知前
+                    if(dist.ch2<15 || dist.ch3<15){                 //測距：減容貯蓄部      満杯検知前
                         kyori_count2++;
                         printf("減容貯蓄部満杯カウント  %d\n",kyori_count2);
                         if(kyori_count2 >= 25){
@@ -385,7 +376,7 @@ int thread_normal(void *ptr)
                     else kyori_count2 = 0;
                 }
                 else if(kyori_state == 1){
-                    if(distance_adc01_ch2>=15 && distance_adc01_ch3>=15){                   //測距：減容貯蓄部      満杯検知後
+                    if(dist.ch2>=15 && dist.ch3>=15){                   //測距：減容貯蓄部      満杯検知後
                         kyori_count3++;
                         printf("減容貯蓄部満杯解除カウント %d\n",kyori_count3);
                         if(kyori_count3>= 50){
@@ -508,7 +499,6 @@ int  thread_admin(void *ptr)
     lcd();
     st =0;
     act=0;
-    teisi=0;
     mode=0;
     printf("管理者モード\n");
     LOG_PRINT("---------管理者モード開始---------", LOG_OK);
@@ -704,6 +694,76 @@ void shutdown_btn(void)
 
 }
 
+/*エラー解除ボタン*/
+int ERROR(void){
+	int buzzer = 0;
+
+	digitalWrite(RED, 1);
+	digitalWrite(YELLOW, 0);
+	digitalWrite(GREEN, 0);
+
+	while(error > 0){
+         btn2=digitalRead(BUTTON2);
+         btn3=digitalRead(BUTTON3);
+
+        if(btn3 == 1){
+                shutdown_btn();
+        }
+		if(btn2==1) {
+			if(error == 1){
+				if(kinsetu1  == 1) error = 0;
+				else buzzer = 1;
+			}else if(error == 2){
+				if(kinsetu2  == 1) error = 0;
+				else buzzer = 1;
+			}else if(error == 3){
+				if(kinsetu3  == 1) error = 0;
+				else buzzer = 1;
+			}else if(error == 4){
+				adc01();
+				if(dist.ch0>=25 && dist.ch1>=25) error = 0;
+				else buzzer = 1;
+			}else if(error == 5){
+				adc01();
+                if(dist.ch4>=25 && dist.ch5>=25) error = 0;
+                else buzzer = 1;
+			}else if(error == 6){
+				error = 0;
+			}else if(error == 7){
+				error = 0;
+			}else if(error == 8){
+				adc02();
+                if(temp.dryA<MOT_Temp)error = 0;
+				else buzzer = 1;
+			}else if(error == 9){
+				adc02();
+                if(temp.dryB<MOT_Temp)error = 0;
+                else buzzer = 1;
+			}else if(error == 10){
+				adc02();
+                if(temp.crashA<MOT_Temp)error = 0;
+                else buzzer = 1;
+			}else if(error == 11){
+				adc02();
+                if(temp.crashB<MOT_Temp)error = 0;
+                else buzzer = 1;
+			}else if(error == 12) error = 0;
+
+			if(buzzer == 1){
+				digitalWrite(BUZZER, 1);
+				delay(500);
+				digitalWrite(BUZZER, 0);
+			}
+			delay(100);		//チャタ対策
+		}
+		delay(200);
+	}
+	lcdPosition(fd_lcd,0,0);
+	lcdPrintf (fd_lcd, "\xB4\xD7\xB0\xB6\xB2\xBC\xDE\xAE");
+     LOG_PRINT("エラー解除", LOG_OK);
+	return 0;
+}
+
 void IOsetting(void){
 
     /**********I/O設定**********/
@@ -754,7 +814,6 @@ void set_init(void){
   mode=1;
   kenti=0;
   error=0;
-  teisi=0;
   d_teisi=0;
   d_end = 0;
   act=0;
@@ -768,10 +827,10 @@ void set_init(void){
   motor1 = 0;
   motor2 = 0;
   flg_manpai=0;
-  dry_secA   = 0;
-  dry_secB   = 0;
-  crash_secA = 0;
-  crash_secB = 0;
+  sp.dry_secA   = 0;
+  sp.dry_secB   = 0;
+  sp.crash_secA = 0;
+  sp.crash_secB = 0;
 }
 
 /*****************************************

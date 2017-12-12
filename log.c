@@ -14,6 +14,7 @@ static FILE *log_file;        /* 通常ログ */
 *************************************************/
 void LOG_PRINT(char log_txt[256], int log_status )
 {
+
         time_t timer;
         struct tm *date;
         char log_str[logN];

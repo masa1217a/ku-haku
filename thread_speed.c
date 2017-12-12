@@ -19,9 +19,6 @@ extern int fd_lcd,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
 extern int d_power,g_power,d_state,g_state;
 extern int mot_state, mot_state2;
 
-extern double dry_sec;
-extern double crash_sec;
-
 extern int sel_sen;
 extern int KOUDEN;
 extern int motor1;
@@ -198,16 +195,20 @@ int thread_speed(void *ptr){
                 //printf("end : %d\n", end);
                   if(gpio_speed = SPEED1){
                     printf("脱水Ａ：");
-                    dry_secA = ck_sec;
+                    sp.dry_secA = ck_sec;
+                    write_value("dryA");
                   }if(gpio_speed = SPEED2){
                     printf("脱水B：");
-                    dry_secB = ck_sec;
+                    sp.dry_secB = ck_sec;
+                    write_value("dryB");
                   }if(gpio_speed = SPEED3){
                     printf("減容Ａ：");
-                    crash_secA = ck_sec;
+                    sp.crash_secA = ck_sec;
+                    write_value("crashA");
                   }if(gpio_speed = SPEED4){
                     printf("減容Ｂ：");
-                    crash_secB = ck_sec;
+                    sp.crash_secB = ck_sec;
+                    write_value("crashB");
                   }
                 ct_sp++;
                 printf("%.3f sec\n", ck_sec);
@@ -219,13 +220,13 @@ int thread_speed(void *ptr){
     ck_sec = (double)(end - start) / 1000;
 
     if(gpio_speed = SPEED1)
-      dry_secA   = ck_sec;
+      sp.dry_secA   = ck_sec;
     if(gpio_speed = SPEED2)
-      dry_secB   = ck_sec;
+      sp.dry_secB   = ck_sec;
     if(gpio_speed = SPEED3)
-      crash_secA = ck_sec;
+      sp.crash_secA = ck_sec;
     if(gpio_speed = SPEED4)
-      crash_secB = ck_sec;
+      sp.crash_secB = ck_sec;
 
     if(flg_manpai==1) break;
   }
