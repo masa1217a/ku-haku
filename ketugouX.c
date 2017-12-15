@@ -71,14 +71,7 @@ pthread_t th;
 pthread_t th_sp;
 pthread_t th_ph;
 
-/*
-    やらなきゃいけないこと
-    グローバル変数を減らす
-    makefileを活用する
-    デバックをやル
-*/
-
-//センサ読み込みスレッド
+/*センサ読み込みスレッド*/
 int thread_Read(void *ptr){
 
     while(1){
@@ -90,7 +83,7 @@ int thread_Read(void *ptr){
     return 0;
 }
 
-//USBでのLOGファイル保存スレッド
+/*USBでのLOGファイル保存スレッド*/
 int USB(void *ptr){
 
         system("sudo sh /home/pi/usb_log.sh");
@@ -101,7 +94,7 @@ int USB(void *ptr){
 /*****************************************
 *                           外部割り込み                                          *
 ******************************************/
-//一時停止ボタン
+/*一時停止ボタン*/
 void stop(void){
   volatile unsigned long time_prev = 0, time_now;
     if(act==1){
@@ -119,7 +112,7 @@ void stop(void){
 /*****************************************
 *                         モード処理                                       *
 *****************************************/
-// 通常モード
+/*通常モード*/
 int thread_normal(void *ptr)
 {
 	mode=0;
@@ -486,7 +479,7 @@ int thread_normal(void *ptr)
     return 0;
 }
 
-//管理モード
+/*管理モード*/
 int  thread_admin(void *ptr)
 {
     lcdClear(fd_lcd);
@@ -612,8 +605,11 @@ lcdPrintf (fd_lcd, "\xD2\xDD\xC3\xC5\xDD\xBD\xD3\xB0\xC4\xDE \xC1\xAD\xB3\xB2  "
     return 0;
 }
 
-int lcd(void)
-{
+/*****************************************
+*                                      関数                                              *
+*****************************************/
+/*LCD関数*/
+int lcd(void){
     if(sw1 == 1){
         lcdPosition(fd_lcd,8,2);
         lcdPrintf (fd_lcd, "ON ") ;
@@ -661,9 +657,8 @@ int lcd(void)
     return 0;
 }
 
-//シャットダウンボタン
-void shutdown_btn(void)
-{
+/*シャットダウンボタン*/
+void shutdown_btn(void){
     time_now = millis();
     if(time_now-time_prev > 500){
         mot_state = MOT_OFF;
@@ -764,6 +759,7 @@ int ERROR(void){
 	return 0;
 }
 
+/*I/O設定関数*/
 void IOsetting(void){
 
     /**********I/O設定**********/
@@ -796,9 +792,7 @@ void IOsetting(void){
 
 }
 
-/*
-    初期化処理
-*/
+/*初期化処理関数*/
 void set_init(void){
   btn1=0;
   btn2=0;

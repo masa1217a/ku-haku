@@ -130,19 +130,19 @@ int thread_speed(void *ptr){
   //////////////////////
 
   //　ギアの枚数を変更する
-  if(gpio_speed = SPEED1){
+  if(gpio_speed == SPEED1){
     gear_ = GEAR_DRY;
     printf("脱水Ａ：");
   }
-  if(gpio_speed = SPEED2){
+  if(gpio_speed == SPEED2){
     gear_ = GEAR_DRY;
     printf("脱水B：");
   }
-  if(gpio_speed = SPEED3){
+  if(gpio_speed == SPEED3){
     gear_ = GEAR_CRASH;
     printf("減容Ａ：");
   }
-  if(gpio_speed = SPEED4){
+  if(gpio_speed == SPEED4){
     gear_ = GEAR_CRASH;
     printf("減容Ｂ：");
   }
@@ -193,19 +193,19 @@ int thread_speed(void *ptr){
                 end = millis();
                 ck_sec = (double)(end - start) / 1000;
                 //printf("end : %d\n", end);
-                  if(gpio_speed = SPEED1){
+                  if(gpio_speed == SPEED1){
                     printf("脱水Ａ：");
                     sp.dry_secA = ck_sec;
                     write_value("dryA");
-                  }if(gpio_speed = SPEED2){
+                  }if(gpio_speed == SPEED2){
                     printf("脱水B：");
                     sp.dry_secB = ck_sec;
                     write_value("dryB");
-                  }if(gpio_speed = SPEED3){
+                  }if(gpio_speed == SPEED3){
                     printf("減容Ａ：");
                     sp.crash_secA = ck_sec;
                     write_value("crashA");
-                  }if(gpio_speed = SPEED4){
+                  }if(gpio_speed == SPEED4){
                     printf("減容Ｂ：");
                     sp.crash_secB = ck_sec;
                     write_value("crashB");
@@ -219,13 +219,13 @@ int thread_speed(void *ptr){
     end = millis();
     ck_sec = (double)(end - start) / 1000;
 
-    if(gpio_speed = SPEED1)
+    if(gpio_speed == SPEED1)
       sp.dry_secA   = ck_sec;
-    if(gpio_speed = SPEED2)
+    if(gpio_speed == SPEED2)
       sp.dry_secB   = ck_sec;
-    if(gpio_speed = SPEED3)
+    if(gpio_speed == SPEED3)
       sp.crash_secA = ck_sec;
-    if(gpio_speed = SPEED4)
+    if(gpio_speed == SPEED4)
       sp.crash_secB = ck_sec;
 
     if(flg_manpai==1) break;

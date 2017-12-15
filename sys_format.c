@@ -76,7 +76,6 @@ int sys_format(void){
     st = 0;
     teisi = 0;
     int i;
-    int fstart,fend;
     // 初期化のフラグ
     int flg_for[10] = {0,0,0,0,0,0,0,0,0,0};
 
@@ -319,7 +318,7 @@ int sys_format(void){
                 delay(500);
             }
 
-            if( flg_for[7] = 1 )   LOG_PRINT("詰まりなし", LOG_OK);
+            if( flg_for[7] == 1 )   LOG_PRINT("詰まりなし", LOG_OK);
             else {
                 error = 6;
                 lcd();

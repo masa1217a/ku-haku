@@ -9,8 +9,6 @@ void write_param(void)
   /*C言語の場合冒頭で宣言する*/
   FILE *fp ;
   int i;
-  int value;
-  char name[STR_MAX];
 
   /*ファイル(save.csv)に書き込む*/
 
@@ -31,7 +29,6 @@ void write_value(char *sensor_name)
 {
   /*C言語の場合冒頭で宣言する*/
   FILE *fp ;
-  int i;
   //int value;
   char name[STR_MAX];
   char date_time[STR_MAX];
@@ -51,11 +48,11 @@ void write_value(char *sensor_name)
   if((fp=fopen(name,"a"))!=NULL){
       /*カンマで区切ることでCSVファイルとする*/
       if(strcmp(sensor_name, "Distance"))
-        fprintf(fp, "%s, %.2f, %.2f, %.2f, %.2f, %.2f, %0.2f", date_time, dist.ch0, dist.ch1, dist.ch2, dist.ch3, dist.ch4, dist.ch5);
+        fprintf(fp, "%s, %d, %d, %d, %d, %d, %d", date_time, dist.ch0, dist.ch1, dist.ch2, dist.ch3, dist.ch4, dist.ch5);
       else if(strcmp(sensor_name, "Temprature"))
         fprintf(fp, "%s, %g , %g , %g , %g", date_time, temp.dryA , temp.dryB, temp.crashA , temp.crashB);
       else
-        fprintf(fp, "%s, %0.2f , %0.2f , %0.2f , %0.2f", sp.dry_secA , sp.dry_secB , sp.crash_secA , sp.crash_secB);
+        //fprintf(fp, "%s, %0.2f , %0.2f , %0.2f , %0.2f", sp.dry_secA , sp.dry_secB , sp.crash_secA , sp.crash_secB);
       /*忘れずに閉じる*/
       fclose(fp);
   }else{

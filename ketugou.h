@@ -170,6 +170,7 @@ void shutdown_btn(void);
 int ERROR(void);
 void write_param(void);
 void write_value(char *sensor_name);
+int param_init();
 
 // スレッド
 int thread_photo(void *ptr);
