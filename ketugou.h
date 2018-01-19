@@ -131,15 +131,14 @@ int fd_lcd,kinsetu1,kinsetu2,kinsetu3,kinsetu4,kinsetu5,status_speed;
 int d_power,g_power,d_state,g_state;
 int mot_state, mot_state2;
 
-double dry_sec;
-double crash_sec;
-
 int sel_sen;
 int KOUDEN;
 int motor1;
 int motor2;
 
 int flg_manpai;
+
+double act_time;
 
 
 /* ログ */
@@ -171,6 +170,9 @@ int ERROR(void);
 void write_param(void);
 void write_value(char *sensor_name);
 int param_init();
+void ck_start();
+void ck_end();
+void ck_init();
 
 // スレッド
 int thread_photo(void *ptr);

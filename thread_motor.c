@@ -9,6 +9,8 @@ extern int mot_state, mot_state2;
 extern int motor1;
 extern int motor2;
 
+speed_ sp;
+
 /*****************************************
 *                           スレッド処理                                          *
 *****************************************/

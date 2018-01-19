@@ -1,15 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <wiringPi.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <lcd.h>
-#include <bcm2835.h>
-#include <mcp23017.h>
-#include <math.h>
-#include <string.h>
 #include "ketugou.h"
 
 extern int btn1, btn2, btn3,sw1,sw2,sw3,sw4,shutdown;
@@ -137,7 +125,7 @@ int sys_format(void){
     while(!flg_for[9]){
         while(1){
 
-            /* 4.   脱水部投入扉が閉じているか */
+            /*1.   脱水部投入扉が閉じているか */
             if(kinsetu1 == 0 ){
                 printf("扉を閉めてください\n");
                 LOG_PRINT("扉が開いている", LOG_NG);
@@ -152,7 +140,7 @@ int sys_format(void){
             }
             //printf("flg_4 = %d\n",  flg_4);
 
-            /* 1. 脱水部と減容部のドッキングがされているか  */
+            /* 2. 脱水部と減容部のドッキングがされているか  */
             if(kinsetu2 == 0 ){
                 printf("脱水部と減容部のドッキングがされていません\n");
                 LOG_PRINT("ドッキングエラー", LOG_NG);
@@ -167,7 +155,7 @@ int sys_format(void){
             }
             //printf("\rflg_1 = %d\n",  flg_1);
 
-            /* 2.   屑箱が設置されているか                */
+            /* 3.   屑箱が設置されているか                */
             if(kinsetu3 == 0 ){
                 printf("屑箱を設置してください\n");
                 LOG_PRINT("屑箱なし", LOG_NG);
@@ -182,7 +170,7 @@ int sys_format(void){
             }
             //printf("flg_2 = %d\n",  flg_2);
 
-            /* 5.   脱水部にスポンジが残されていないか       */
+            /* 4.   脱水部にスポンジが残されていないか       */
             adc01();
             if(st==0&&teisi==0 && dist.ch0<25 && dist.ch1<25)
             {
@@ -198,31 +186,14 @@ int sys_format(void){
                 flg_for[3] = 1;
             }
             //printf("flg_5 = %d\n",  flg_5);
-
-            /* 6.   減容部にスポンジが残されていないか       */
-            adc01();
-            if(st==0&&teisi==0 && dist.ch2<25 && dist.ch3<25)
-            {
-                printf("エラー:スポンジの量が多いです\n");
-                LOG_PRINT("投入口のスポンジの量が多い",LOG_NG);
-                error=5;
-                lcd();
-                flg_for[4] = 0;
-                delay(200);
-                break;
-            }else{
-             LOG_PRINT("投入口のスポンジの量がちょうどいい", LOG_OK);
-             flg_for[4] = 4;
-            }
-            //printf("flg_6 = %d\n",  flg_6);
-
-            /* 3.   屑箱内にスポンジが残っていないか       */
+            
+            /* 5.   屑箱内にスポンジが残っていないか       */
             adc01();
             if(st==0&&teisi==0 && dist.ch4<25 && dist.ch5<25 )
             {
                 printf("エラー:屑箱内のスポンジの量が多いです\n");
                 LOG_PRINT("屑箱内のスポンジの量が多い",LOG_NG);
-                error=6;
+                error=5;
                 lcd();
                 flg_for[5] = 0;
                 delay(200);
@@ -233,7 +204,7 @@ int sys_format(void){
             }
             //printf("flg_3 = %d\n",  flg_3);
 
-            /* 7.   モータの温度が安定動作できる範囲であるか  */
+            /* 6.   モータの温度が安定動作できる範囲であるか  */
             if(sensor_Temp() == 0) flg_for[6] = 1;
             else flg_for[6] = 0;
 
@@ -253,7 +224,7 @@ int sys_format(void){
             }
             */
 
-            /* 8.   脱水部と減容部の詰まり確認　 */
+            /* 7.   脱水部と減容部の詰まり確認　 */
             sel_sen = SPEED1;
             pthread_create( &th_sp, NULL, (void*(*)(void*))thread_speed, NULL); //スレッド[speed]スタート
             delay(50);
@@ -327,7 +298,7 @@ int sys_format(void){
             }
             //printf("flg_8 = %d\n\n",  flg_8);
 
-            /*9.スポンジ残ってないか確認*/
+            /*8.スポンジ残ってないか確認*/
             // モーター動作中に温度、速度、光電、近接が機能しているか
             KOUDEN = PHOTO1;
             pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);    //スレッド[pth]スタート

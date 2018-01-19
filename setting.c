@@ -1,7 +1,4 @@
 /* get_param.c */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "ketugou.h"
 
 void write_param(void)
@@ -47,12 +44,18 @@ void write_value(char *sensor_name)
   strcat(name, ".csv");
   if((fp=fopen(name,"a"))!=NULL){
       /*カンマで区切ることでCSVファイルとする*/
-      if(strcmp(sensor_name, "Distance"))
-        fprintf(fp, "%s, %d, %d, %d, %d, %d, %d", date_time, dist.ch0, dist.ch1, dist.ch2, dist.ch3, dist.ch4, dist.ch5);
-      else if(strcmp(sensor_name, "Temprature"))
-        fprintf(fp, "%s, %g , %g , %g , %g", date_time, temp.dryA , temp.dryB, temp.crashA , temp.crashB);
-      else
-        //fprintf(fp, "%s, %0.2f , %0.2f , %0.2f , %0.2f", sp.dry_secA , sp.dry_secB , sp.crash_secA , sp.crash_secB);
+      if(strcmp(sensor_name, "Distance")==0)
+        fprintf(fp, "%s, %d, %d, %d, %d, %d, %d\n", date_time, dist.ch0, dist.ch1, dist.ch2, dist.ch3, dist.ch4, dist.ch5);
+      else if(strcmp(sensor_name, "Temprature")==0)
+        fprintf(fp, "%s, %g , %g , %g , %g\n", date_time, temp.dryA , temp.dryB, temp.crashA , temp.crashB);
+      else if(strcmp(sensor_name, "dryA") == 0)
+        fprintf(fp, "%s, %g\n", date_time,  sp.dry_secA);
+      else if(strcmp(sensor_name, "dryB") == 0)
+		fprintf(fp, "%s, %g\n", date_time, sp.dry_secB);
+      else if(strcmp(sensor_name, "crashA") == 0)
+		fprintf(fp, "%s, %g\n", date_time, sp.crash_secA);
+      else if(strcmp(sensor_name, "crashB") == 0)
+		fprintf(fp, "%s, %g\n", date_time, sp.crash_secB);
       /*忘れずに閉じる*/
       fclose(fp);
   }else{
