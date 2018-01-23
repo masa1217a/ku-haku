@@ -93,6 +93,33 @@ extern int SW4;                                                     // 減容　
 //double crash_secA = 0;
 //double crash_secB = 0;
 
+// 立ち上がり待ち
+int speed_Rising(void)
+{
+  printf("立ち上がりまで待つ\n" );
+  while(1){
+    start = millis();
+    while (status_speed != 1 && sp_flag != 0) {
+          //printf("%d\n",status_speed);
+        }
+        sp_flag = 1;
+        while(status_speed != 0 && sp_flag != 1);
+        speed_count++;
+        if( (speed_count % gear_ ) == 0 ){
+          end = millis();
+          ck_new = (double)(end - start);
+          if(ck_new > ck_old){
+            if(ck_new - ck_old < 5) break;
+            else{ ck_old = ck_new};
+          }
+          else{
+            if(ck_old - ck_new < 5) break;
+            else{ ck_old = ck_new }
+          }
+        }
+      }
+}
+
 int read_speed(int gpio_speed )
 {
   /* Read Current Switch Status */
@@ -127,8 +154,6 @@ int thread_speed(void *ptr){
   int flg_sec = 0;
   // 時間    ////////////
   double ck_sec = 0;
-  double ck_old = 0;
-  double ck_new = 0;
   //////////////////////
 
   //　ギアの枚数を変更する
@@ -151,33 +176,8 @@ int thread_speed(void *ptr){
     delay(time_sp*1000);
   }
 
-  printf("立ち上がりまで待つ\n" );
-  while(1){
-    start = millis();
-    while (status_speed != 1 && sp_flag != 0) {
-          //printf("%d\n",status_speed);
-    }
-    sp_flag = 1;
-    while(status_speed != 0 && sp_flag != 1);
-    speed_count++;
-    if( (speed_count % gear_ ) == 0 ){
-        end = millis();
-        ck_new = (double)(end - start);
-        if(ck_new > ck_old){
-          if(ck_new - ck_old < 5) break;
-          else{ ck_old = ck_new};
-        }
-        else{
-          if(ck_old - ck_new < 5) break;
-          else{ ck_old = ck_new }
-        }
-    }
-  }
-
-  //int i;
-
   /* Start main routine */
-  printf("速度：測定スタート\n");
+  printf("start\n");
    start = millis();
    //printf("%d\n", start);
   for(;;) {
@@ -253,6 +253,7 @@ int thread_speed(void *ptr){
       sp.crash_secB = ck_sec;
 
     if(flg_manpai==1) break;
+    if(d_end == 1) break;
   }
   return 0;
 }
