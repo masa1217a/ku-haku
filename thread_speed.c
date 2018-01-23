@@ -100,24 +100,24 @@ int speed_Rising(void)
   while(1){
     start = millis();
     while (status_speed != 1 && sp_flag != 0) {
-          //printf("%d\n",status_speed);
-        }
-        sp_flag = 1;
-        while(status_speed != 0 && sp_flag != 1);
-        speed_count++;
-        if( (speed_count % gear_ ) == 0 ){
-          end = millis();
-          ck_new = (double)(end - start);
-          if(ck_new > ck_old){
-            if(ck_new - ck_old < 5) break;
-            else{ ck_old = ck_new};
-          }
-          else{
-            if(ck_old - ck_new < 5) break;
-            else{ ck_old = ck_new }
-          }
-        }
+      //printf("%d\n",status_speed);
+    }
+    sp_flag = 1;
+    while(status_speed != 0 && sp_flag != 1);
+    speed_count++;
+    if( (speed_count % gear_ ) == 0 ){
+      end = millis();
+      ck_new = (double)(end - start);
+      if(ck_new > ck_old){
+        if(ck_new - ck_old < 5) break;
+        else{ ck_old = ck_new};
       }
+      else{
+        if(ck_old - ck_new < 5) break;
+        else{ ck_old = ck_new }
+      }
+    }
+  }
 }
 
 int read_speed(int gpio_speed )
