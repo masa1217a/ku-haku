@@ -4,19 +4,19 @@ mot1_STOP,25
 mot2_F,27
 mot2_R,28
 mot2_STOP,29
-MOT_Temp ,9999
-mot_clean_sec,5
-mot_format_sec,5
+MOT_Temp ,60
+mot_clean_sec,12
+mot_format_sec,12
 LIGHT,101
 PHOTO1,102
 PHOTO2,103
-SPEED1    ,107
-SPEED2    ,106
-SPEED3    ,105
-SPEED4    ,104
+SPEED1,104
+SPEED2,105
+SPEED3,106
+SPEED4,107
 GEAR_DRY,2
 GEAR_CRASH,1
-time_sp   ,3
+time_sp,5
 KINSETU1,108
 KINSETU2,109
 KINSETU3,110
@@ -34,3 +34,5 @@ SW2,212
 SW3,215
 SW4,214
 FlgKouden,0
+time_A,0
+time_B,0

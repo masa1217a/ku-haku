@@ -132,5 +132,7 @@ int param_init()
   SW3             = vec[33].value;
   SW4             = vec[34].value;
   FlgKouden       = vec[35].value;
+  time_A          = vec[36].value;
+  time_B          = vec[37].value;
   return 0;
 }

@@ -8,7 +8,10 @@ void ck_init(){
 }
 void ck_start()
 {
-	start = millis();
+	start = clock();
+	while(1){
+		end = millis();
+	}
 	printf("処理開始：%g\n", act_time);
 }
 

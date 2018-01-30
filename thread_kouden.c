@@ -69,7 +69,7 @@ int thread_photo(void *ptr){
                 }
         }
         */
-        while(mot_state != MOT_For){					//脱水モーター逆転中は正転になるまで待つ	(MOT_For意外だと動作しなくなってしまうのでMOT_For以外の時に終了検知する場所あるなら修正)
+        while(d_end == 0 && (mot_state == MOT_Rev || mot_state== MOT_change_Rev)){					//脱水モーター逆転中は正転になるまで待つ	(MOT_For意外だと動作しなくなってしまうのでMOT_For以外の時に終了検知する場所あるなら修正)
 			if(st == 1) break;
 			delay(100);
         }
@@ -81,11 +81,11 @@ int thread_photo(void *ptr){
                 }
         }
 
-        if(pht==1)
+        if(pht==1 || d_end == 1)
         {
             printf("カウント開始%d\n", d_end);
             time_count=0;
-            while(pht == 1){
+            while(pht == 1 || d_end==1){
                 time_count++;
                 if(kouden_num == 1 && d_teisi == 1){			//貯蓄部の満杯信号が来たら停止信号来るまで待つ
                     while(d_teisi){
@@ -94,26 +94,28 @@ int thread_photo(void *ptr){
 					}
                 }
 
-                while(mot_state != MOT_For){					//脱水モーター逆転中は正転になるまで待つ	(MOT_For意外だと動作しなくなってしまうのでMOT_For以外の時に終了検知する場所あるなら修正)
+                while(d_end == 0 &&mot_state == MOT_Rev){					//脱水モーター逆転中は正転になるまで待つ	(MOT_For意外だと動作しなくなってしまうのでMOT_For以外の時に終了検知する場所あるなら修正)
 					if(st == 1) break;
 					delay(100);
                 }
 
-                pht=digitalRead( wonda );
+               pht=digitalRead( wonda );
 
-                if(dec_time >= 10)		//終了秒数　10だと10秒
+                if(dec_time >= 10 && d_end == 0)		//脱水終了秒数　10だと10秒
                 {
-					/*
-                    if(kouden_num   == 1){
                         dec_time = 0;
                         mot_state = MOT_OFF;
                         d_end = 1;
                         FlgKouden = 0;
                         vec[35].value = FlgKouden;
                         write_param();
-                        printf("脱水終了\n");
-                        return 0;
-                    }else{
+                        printf("脱水終了 \n");
+                 }else if(dec_time >= 10 && d_end == 1){	//全体終了秒数
+                        mot_state2 = MOT_Clean;
+                 }if(	d_end==1 && motor2 == 1){
+                        mot_state  = MOT_OFF;
+                        mot_state2 = MOT_OFF;
+						motor2 = 0;
                         d_teisi = 0;
                         d_end = 0;
                         dec_time = 0;
@@ -121,31 +123,14 @@ int thread_photo(void *ptr){
                         vec[35].value = FlgKouden;
                         write_param();
                         teisi=0;
-                        mot_state  = MOT_OFF;
-                        mot_state2 = MOT_OFF;
-                        printf("減容終了\n");
-                        return 0;
-                    }
-                    */
-                        d_teisi = 0;
-                        dec_time = 0;
-                        //FlgKouden = 0;
-                        //vec[35].value = FlgKouden;
-                        //write_param();
-                        teisi=0;
                         kenti = 0;
-                        mot_state  = MOT_OFF;
-                        mot_state2 = MOT_OFF;
                         st = 1;
 						teisi = 0;
-						d_end = 0;
                         lcdPosition(fd_lcd,0,0);
-                       lcdPrintf (fd_lcd, "\xCC\xB8\xDB\xCA\xBE\xAF\xC1\xBC\xCF\xBC\xC0\xB6\x3F        ") ;        //フクロハセッチシマシタカ？ 
+                       lcdPrintf (fd_lcd, "\xCC\xB8\xDB\xCA\xBE\xAF\xC1\xBC\xCF\xBC\xC0\xB6\x3F        ") ;        //フクロハセッチシマシタカ？
                         printf("終了\n");
                         return 0;
-                }
-                else
-                {
+                 }else{
                     if(time_count>19) {
                         dec_time++;
                         printf("経過時間　＝　%d　秒 \n",dec_time);

@@ -51,10 +51,10 @@ int USB(void *ptr){
 ******************************************/
 /*一時停止ボタン*/
 void stop(void){
-  
+
     if(act==1){
         time_now = millis();
-        if(time_now-time_prev > 500){
+        if(time_now-time_prev > 50){
             st = 1;
             mot_state = MOT_OFF;
             mot_state2 = MOT_OFF;
@@ -86,7 +86,7 @@ int thread_normal(void *ptr)
     int   kyori_state = 0;
     int d_tumari = 0;
     int g_tumari = 0;
-    int 
+    int
     d_end = 0;
     act=0;
     st =0;
@@ -96,13 +96,13 @@ int thread_normal(void *ptr)
     digitalWrite(LED2, 0);
     lcdPosition(fd_lcd,0,0);
     lcdPrintf (fd_lcd, "\xCC\xB8\xDB\xCA\xBE\xAF\xC1\xBC\xCF\xBC\xC0\xB6\x3F       ") ;     //フクロハセッチシマシタカ？
-    
+
     while(btn1 == 1|| btn2 == 1){	//モード切替時誤操作が起きないようにボタンを離すまで待つ
         btn1=digitalRead(BUTTON1);
-        btn2=digitalRead(BUTTON2);		
+        btn2=digitalRead(BUTTON2);
         delay(50);
 	}
-    
+
     while(1){
         if(error == 0){
             digitalWrite(RED, 0);
@@ -220,12 +220,12 @@ int thread_normal(void *ptr)
                 LOG_PRINT("スタート", LOG_OK);
                 teisi = 0;
             }
-            
+
             if(st==0 && d_power== 1 && d_state==0 && d_teisi == 0 && d_end ==0)  mot_state = MOT_For;
             if(st==0 && d_power== 1 && d_state==1 && d_teisi == 0 && d_end ==0)  mot_state = MOT_Rev;
             if(st==0 && g_power== 1 && g_state==0)mot_state2 = MOT_For;
             if(st==0 && g_power== 1 && g_state==1)  mot_state2 = MOT_Rev;
-            
+
             if(mot_state == MOT_For || mot_state2 == MOT_For) gggg = 1;
 
 			if(st == 0 && d_power == 1){	//脱水部を動かしたとき
@@ -240,32 +240,32 @@ int thread_normal(void *ptr)
 
 			}
 
-			if(st == 0 && g_power == 1){		//減容部を動かしたとき
+			if(st == 0 && g_power == 1&&g_state == 0){		//減容部を正転で動かしたとき
                 /*KOUDEN = PHOTO2;
                 pthread_create( &th, NULL, (void*(*)(void*))thread_photo, NULL);    //スレッド[pth]スタート
                 */
-				//sel_sen = SPEED3;
+				        //sel_sen = SPEED3;
                 //pthread_create( &th_sp, NULL, (void*(*)(void*))thread_speed, NULL); //スレッド[speed]スタート
-                //delay(50);
+                delay(50);
                 //sel_sen = SPEED4  ;
                 //pthread_create( &th_sp, NULL, (void*(*)(void*))thread_speed, NULL); //スレッド[speed]スタート
 			}
 
             while(1){
-                if(gggg==1 && mot_sec >= 300 && (mot_state == MOT_For || mot_state2 == MOT_For)){			//時間設定　ここ１
+                if(gggg==1 && mot_sec >= 300 && (mot_state == MOT_For || mot_state == MOT_change_For || mot_state2 == MOT_For)){			//時間設定　ここ１
 					printf("逆転します\n");
-					 if(d_power == 1)mot_state = MOT_Rev;
+					 //if(d_power == 1&&d_teisi==0&&d_end==0)mot_state = MOT_change_Rev;
 					 if(g_power == 1)mot_state2 = MOT_Rev;
 					 mot_sec = 0;
                 }
-                if(gggg==1 && mot_sec >= 150 && (mot_state == MOT_Rev || mot_state2 == MOT_Rev)){
+                if(gggg==1 && mot_sec >= 150 && (mot_state == MOT_Rev || mot_state == MOT_change_Rev || mot_state2 == MOT_Rev)){
 					printf("正転します\n");
-					 if(d_power == 1)mot_state = MOT_For;
+					 //if(d_power == 1&&d_teisi==0&&d_end==0)mot_state = MOT_change_For;
 					 if(g_power == 1)mot_state2 = MOT_For;
 					mot_sec = 0;
 				}
 				if(gggg == 1)mot_sec++;
-				
+
                 if(st  == 1)
                 {
 					mot_sec = 0;
@@ -293,7 +293,7 @@ int thread_normal(void *ptr)
                     if(temp.crashB>=MOT_Temp)error = 11;
                     LOG_PRINT("異常な温度を検知", LOG_NG);
                     st = 1;
-                    lcd(); 
+                    lcd();
                     delay(200);
                 }
 
@@ -368,7 +368,7 @@ int thread_normal(void *ptr)
                 }
 
                 if(st==0 && d_power== 1 && d_teisi == 0 && d_end == 0 && d_tumari== 0 && (sp.dry_secA >= 10 || sp.dry_secB >= 10 ) ){				 //脱水部　詰まり検知
-                    printf("脱水部詰まり検知\n");
+                    printf("脱水部詰まり検知 %d\n",d_end);
                     mot_state = MOT_Clean;
                     d_tumari = 1;
                     printf("%.3f sec\n", sp.dry_secA);
@@ -392,7 +392,7 @@ int thread_normal(void *ptr)
 				}
 
 
-                if(st==0 && g_power== 1 && g_tumari == 0 &&(sp.crash_secA >= 10  || sp.crash_secB >= 10 )){                                                   //減容部　詰まり検知
+                if(st==0 && g_power== 1 && g_tumari == 0 &&(sp.crash_secA >= time_A  || sp.crash_secB >= time_B )){                                                   //減容部　詰まり検知
                     printf("減容部詰まり検知\n");
                     mot_state2 = MOT_Clean;
                     g_tumari = 1;
@@ -415,7 +415,7 @@ int thread_normal(void *ptr)
                         if(st==0 && g_power== 1 && g_state==1)  mot_state2 = MOT_Rev;
 					}
 				}
-				
+
                 delay(100);
             }
         }else{
@@ -479,13 +479,13 @@ int  thread_admin(void *ptr)
     LOG_PRINT("---------管理者モード開始---------", LOG_OK);
     digitalWrite(LED1, 0);
     digitalWrite(LED2, 1);
-    
+
      while(btn1 == 1|| btn2 == 1){	//モード切替時誤操作が起きないようにボタンを離すまで待つ
         btn1=digitalRead(BUTTON1);
-        btn2=digitalRead(BUTTON2);		
+        btn2=digitalRead(BUTTON2);
         delay(50);
-	}   
-    
+	}
+
     while(1){
 lcdPosition(fd_lcd,0,0);
 
@@ -545,7 +545,7 @@ lcdPosition(fd_lcd,0,0);
                 digitalWrite(YELLOW, 0);
                 digitalWrite(GREEN, 0);
             }
-            if(st==0) 
+            if(st==0)
             {
 				act=1;
 			}
@@ -557,15 +557,15 @@ lcdPosition(fd_lcd,0,0);
             if(mot_state == MOT_For || mot_state2 == MOT_For) gggg = 1;
 
             while(1){
-                if(gggg==1 && mot_sec >= 300 && (mot_state == MOT_For || mot_state2 == MOT_For)){			//時間設定　ここ２
+                if(gggg==1 && mot_sec >= 350 && (mot_state == MOT_For || mot_state == MOT_change_For || mot_state2 == MOT_For)){			//時間設定　ここ２
 					printf("逆転します\n");
-					 if(d_power == 1)mot_state = MOT_Rev;
+					 //if(d_power == 1&&d_teisi==0&&d_end==0)mot_state = MOT_change_Rev;
 					 if(g_power == 1)mot_state2 = MOT_Rev;
 					 mot_sec = 0;
                 }
-                if(gggg==1 && mot_sec >= 150 && (mot_state == MOT_Rev || mot_state2 == MOT_Rev)){
+                if(gggg==1 && mot_sec >= 200 && (mot_state == MOT_Rev || mot_state == MOT_change_Rev || mot_state2 == MOT_Rev)){
 					printf("正転します\n");
-					 if(d_power == 1)mot_state = MOT_For;
+					 //if(d_power == 1&&d_teisi==0&&d_end==0)mot_state = MOT_change_For;
 					 if(g_power == 1)mot_state2 = MOT_For;
 					mot_sec = 0;
 				}
@@ -761,7 +761,7 @@ int ERROR(void){
 			}
 			delay(100);		//チャタ対策
 		}
-		
+
         if(btn2==1) {
             if(btn1 == 1){
                 while(1){
@@ -784,7 +784,7 @@ int ERROR(void){
                 }
             }
         }
-        
+
 		delay(200);
 	}
 	if(error == 0){

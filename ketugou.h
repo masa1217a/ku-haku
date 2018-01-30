@@ -29,7 +29,8 @@
 #define MOT_Clean 3                         //詰まり検知後の動作
 #define MOT_Format 4                      //初期チェック
 #define MOT_For_check 5              //初期チェック
-
+#define MOT_change_For 6
+#define MOT_change_Rev 7
 #define time_chat 500
 
 /*構造体宣言*/
@@ -173,6 +174,8 @@ int param_init();
 void ck_start();
 void ck_end();
 void ck_init();
+void Speed_Rising(void);
+int ave_speed(int gpio_speed);
 
 // スレッド
 int thread_photo(void *ptr);
