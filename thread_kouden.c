@@ -19,131 +19,88 @@ extern int flg_manpai;
 /*****************************************
 *				スレッド処理			     *
 *****************************************/
-//光電スレッド
-int thread_photo(void *ptr){
-    int time_count=0;
-    int dec_time = 0;                       // 光電経過時間(検知しなくなった時間)
-    int wonda = 0;                          // ピン番号格納
-    int pht = 0;
-    int kouden_num = 0;                     // 光電センサが脱水部か減容部か（1→脱水部　0→減容部）
+/************************/
+/*     光電スレッド
+*     60秒検知しなかったら終了
+*     検知したら脱水モータを止める
+*     一定時間経過後脱水モーターをスタート
+*     これを1サイクルとする　メイン処理
+*     終了時は脱水とモーターを止める
+*/
 
-    if(KOUDEN == PHOTO1)    {
-        wonda = PHOTO1;                       // 脱水部
-        kouden_num = 1;
-        printf("光電：脱水部\n");
-    }else{
-        wonda = PHOTO2;                       // 減容部
-        kouden_num = 0;
-        printf("光電：減容部\n");
-    }
+static int time_count = 0;
+static int pht;
 
-    pht = digitalRead(wonda);
-    // printf("kouden No: %d\n",kouden_num);
-
-    if(pht == 1)printf("物体検知まで待つ\n");
-    while(pht == 1) //pht:1=受光　　pht:0=物体検知
-    {
-      //if( FlgKouden == 1 ) break;      // 停止ボタンで動作を止める
-      if(kenti == 1) break;
-      if(st == 1)break;
-      pht = digitalRead(wonda);            // 光電読み込み
-      delay(50);
-    }
-    // 停止ボタンで
-    //FlgKouden = 1;
-    // 値の保存 (要改善)
-    vec[35].value = FlgKouden;
-    if( pht==0 ) printf("光電センサが物体検知\n物体がなくなるまで待つ\n");
-	kenti = 1;
-    while(st == 0){
-        dec_time = 0;
-
-        pht = digitalRead(wonda);
-
- //       if(kouden_num == 1 && d_end == 1)break;
 /*
-        if(kouden_num == 1 && d_teisi == 1){
-                while(d_teisi){
-                        if(st == 1) break;
-                        delay(100);
-                }
-        }
-        */
-        while(d_end == 0 && (mot_state == MOT_Rev || mot_state== MOT_change_Rev)){					//脱水モーター逆転中は正転になるまで待つ	(MOT_For意外だと動作しなくなってしまうのでMOT_For以外の時に終了検知する場所あるなら修正)
-			if(st == 1) break;
-			delay(100);
-        }
-                
-        if(kouden_num == 1 && mot_state == MOT_Clean){
-                while(MOT_Clean){
-                        if(st == 1) break;
-                        delay(100);
-                }
-        }
+    光電の無反応時間を検知
+*/
+void photo_sec(void)
+{
+  time_count++;
+  if((time_count % 10) == 0){
+    printf("検知：無　　" );
+    printf("経過時間：%d\n", (time_count % 10));
+  }
+  if((time_count % 10) == 60){
+    printf("スポンジがなくなりました。\n");
+    printf("処理を終了します。\n");
+    st = 1;
+  }
+  delay(100);
+}
 
-        if(pht==1 || d_end == 1)
-        {
-            printf("カウント開始%d\n", d_end);
-            time_count=0;
-            while(pht == 1 || d_end==1){
-                time_count++;
-                if(kouden_num == 1 && d_teisi == 1){			//貯蓄部の満杯信号が来たら停止信号来るまで待つ
-                    while(d_teisi){
-                        if(st == 1) break;
-                        delay(100);
-					}
-                }
+/*
+    スポンジ検知
+*/
+void read_photo(int photo)
+{
+  pht = digitalRead(photo); // 光電の状態を見る
 
-                while(d_end == 0 &&mot_state == MOT_Rev){					//脱水モーター逆転中は正転になるまで待つ	(MOT_For意外だと動作しなくなってしまうのでMOT_For以外の時に終了検知する場所あるなら修正)
-					if(st == 1) break;
-					delay(100);
-                }
+  if(pht == 0)
+    printf("光電　反応：有\n");
+  else
+    //printf("光電　反応：無\n");
+}
 
-               pht=digitalRead( wonda );
+/*
+  　検知後の待ち処理
+*/
+void wait_photo(void)
+{
+  int i;
+  for(i=0;i<100;i++){
+    delay(100);
+  }
+}
 
-                if(dec_time >= 10 && d_end == 0)		//脱水終了秒数　10だと10秒
-                {
-                        dec_time = 0;
-                        mot_state = MOT_OFF;
-                        d_end = 1;
-                        FlgKouden = 0;
-                        vec[35].value = FlgKouden;
-                        write_param();
-                        printf("脱水終了 \n");
-                 }else if(dec_time >= 10 && d_end == 1){	//全体終了秒数
-                        mot_state2 = MOT_Clean;
-                 }if(	d_end==1 && motor2 == 1){
-                        mot_state  = MOT_OFF;
-                        mot_state2 = MOT_OFF;
-						motor2 = 0;
-                        d_teisi = 0;
-                        d_end = 0;
-                        dec_time = 0;
-                        FlgKouden = 0;
-                        vec[35].value = FlgKouden;
-                        write_param();
-                        teisi=0;
-                        kenti = 0;
-                        st = 1;
-						teisi = 0;
-                        lcdPosition(fd_lcd,0,0);
-                       lcdPrintf (fd_lcd, "\xCC\xB8\xDB\xCA\xBE\xAF\xC1\xBC\xCF\xBC\xC0\xB6\x3F        ") ;        //フクロハセッチシマシタカ？
-                        printf("終了\n");
-                        return 0;
-                 }else{
-                    if(time_count>19) {
-                        dec_time++;
-                        printf("経過時間　＝　%d　秒 \n",dec_time);
-                        time_count=0;
-                    }
-                }
-                if(st==1) break;
-                //if(kouden_num   == 1 && d_end == 1 ) break;
+/*
+    モーターの状態
+*/
+void photo_mot(photo_state)
+{
+  switch (photo_state) {
+    case 0:   //　光電検知後、脱水モータを停止
+      mot_state = MOT_OFF;
+      break;
+    case 1;  //　終了時の処理
+      mot_state = MOT_OFF;
+      mot_state2 = MOT_Clean;
+      break;
+    case 2:
+      mot_state = MOT_For;
+  }
+}
 
-                delay(50);
-            }
-        }
-        delay(50);
+int thread_photo(void *ptr){
+    while(1)
+    {
+      photo_sec();
+      if(st == 1) break;
+      read_photo();
+      if(pht == 0)
+        photo_mot(0);
+      wait_photo();
+      photo_mot(2);
     }
     return 0;
 }
