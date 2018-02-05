@@ -34,7 +34,7 @@ int thread_MOT(void){
                 break;
 
             case MOT_For://モーターが正転の場合
-                digitalWrite(mot1_R,1);
+                digitalWrite(mot1_R,0);
                 usleep(50000);
                 digitalWrite(mot1_F,1);
                 break;
@@ -42,7 +42,7 @@ int thread_MOT(void){
             case MOT_Rev://モータが逆転の場合
                 digitalWrite(mot1_F,1);
                 usleep(50000);
-                digitalWrite(mot1_R,0);
+                digitalWrite(mot1_R,1);
                 break;
 
             case MOT_Clean:
@@ -58,13 +58,13 @@ int thread_MOT(void){
                     digitalWrite(mot1_R,0);
                  }else if(m_sec > 5 && m_sec <= 15){
                     digitalWrite(mot1_F,1);
-                    digitalWrite(mot1_R,0);
+                    digitalWrite(mot1_R,1);
                 }else if(m_sec > 15&& m_sec <= 20){
                     digitalWrite(mot1_F,0);
                     digitalWrite(mot1_R,0);
                  }else if(m_sec > 20 && m_sec <=30){
                     digitalWrite(mot1_F,1);
-                    digitalWrite(mot1_R,1);
+                    digitalWrite(mot1_R,0);
                 }else{
 					motor1 = 1;
                     printf("つまり処理 正常終了\n");
@@ -88,19 +88,19 @@ int thread_MOT(void){
                     digitalWrite(mot1_R,0);
                 }else if(m_sec > 1 && m_sec <= 5){
                     digitalWrite(mot1_F,1);
-                    digitalWrite(mot1_R,0);
+                    digitalWrite(mot1_R,1);
                 }else if(m_sec > 5 && m_sec <= 6){
                     digitalWrite(mot1_F,0);
                     digitalWrite(mot1_R,0);
                 }else if(m_sec > 6 && m_sec <= 11){
                     digitalWrite(mot1_F,1);
-                    digitalWrite(mot1_R,1);
+                    digitalWrite(mot1_R,0);
                  }else if(m_sec > 11 && m_sec <= 12){
                     digitalWrite(mot1_F,0);
                     digitalWrite(mot1_R,0);
                 }else if(m_sec > 12 && m_sec <= 17 ){
                     digitalWrite(mot1_F,1);
-                    digitalWrite(mot1_R,0);
+                    digitalWrite(mot1_R,1);
                 }else{
 					          motor1 = 1;
                     flg_f = 0;
@@ -118,7 +118,7 @@ int thread_MOT(void){
 
                 if(m_sec < 10){
                     digitalWrite(mot2_F,1);
-                    digitalWrite(mot2_R,1);
+                    digitalWrite(mot2_R,0);
                 }else{
 					motor1 = 1;
                     flg_fc = 0;
@@ -126,22 +126,6 @@ int thread_MOT(void){
                 }
             break;
 
-			case MOT_change_For:
-                digitalWrite(mot1_R,0);
-                digitalWrite(mot1_F,0);
-                delay(3000);
-                digitalWrite(mot1_R,1);
-                digitalWrite(mot1_F,1);
-			break;
-
-			case MOT_change_Rev:
-                digitalWrite(mot1_R,0);
-                digitalWrite(mot1_F,0);
-                delay(3000);
-                digitalWrite(mot1_R,0);
-                digitalWrite(mot1_F,1);
-			break;
-			
             default:
                 printf("デフォルトです\n");
                 break;
@@ -185,7 +169,7 @@ int thread_MOT2(void){
                 if(flg_c == 0){
                     m_start = millis();
                     flg_c=1;
-                    printf("クリーン処理　開始\n");
+                    printf("つまり処理　開始\n");
                 }
                 m_end = millis();
                 m_sec = (double)(m_end - m_start) / 1000;
@@ -202,7 +186,7 @@ int thread_MOT2(void){
                     digitalWrite(mot2_F,1);
                     digitalWrite(mot2_R,0);
                 }else{
-                    printf("クリーン処理 正常終了\n");
+                    printf("つまり処理 正常終了\n");
 					motor2 = 1;
                     flg_c = 0;
                 }
