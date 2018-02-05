@@ -175,6 +175,7 @@ void ck_start();
 void ck_end();
 void ck_init();
 void Speed_Rising(void);
+int speed_rough(void);
 int ave_speed(int gpio_speed);
 
 // スレッド
